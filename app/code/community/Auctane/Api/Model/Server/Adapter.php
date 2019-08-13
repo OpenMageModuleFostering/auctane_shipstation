@@ -85,6 +85,13 @@ class Auctane_Api_Model_Server_Adapter
             
 		$auth_user = isset($_SERVER['HTTP_SS_AUTH_USER']) ? $_SERVER['HTTP_SS_AUTH_USER'] : @$_SERVER['PHP_AUTH_USER'];
 		$auth_password = isset($_SERVER['HTTP_SS_AUTH_PW']) ? $_SERVER['HTTP_SS_AUTH_PW'] : @$_SERVER['PHP_AUTH_PW'];
+
+		if(!$auth_user)
+            		$auth_user = $this->getController()->getRequest()->getParam('SS-UserName');
+
+       		 if(!$auth_password)
+            		$auth_password = $this->getController()->getRequest()->getParam('SS-Password');
+
 		if (!$user->authenticate($auth_user, $auth_password)) {
 			header(sprintf('WWW-Authenticate: Basic realm="%s"', Mage::getStoreConfig('auctaneapi/config/realm')));
 			$this->fault(401, 'Unauthorized');
