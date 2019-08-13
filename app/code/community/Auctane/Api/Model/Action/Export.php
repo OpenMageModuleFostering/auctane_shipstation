@@ -1,7 +1,24 @@
 <?php
+/**
+ * ShipStation
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@auctane.com so we can send you a copy immediately.
+ *
+ * @category    Shipping
+ * @package     Auctane_Api
+ * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
 
-class Auctane_Api_Model_Action_Export {
-
+class Auctane_Api_Model_Action_Export
+{
     /**
      * Perform an export according to the given request.
      *
@@ -9,7 +26,8 @@ class Auctane_Api_Model_Action_Export {
      * @param Mage_Core_Controller_Response_Http $response
      * @throws Exception
      */
-    public function process(Mage_Core_Controller_Request_Http $request, Mage_Core_Controller_Response_Http $response) {
+    public function process(Mage_Core_Controller_Request_Http $request, Mage_Core_Controller_Response_Http $response)
+    {
         // In case store is part of URL path use it to choose config.
         $store = $request->get('store');
         if ($store)
@@ -17,9 +35,9 @@ class Auctane_Api_Model_Action_Export {
 
         $apiConfigCharset = Mage::getStoreConfig("api/config/charset", $store);
 
-        $start_date = strtotime(urldecode($request->getParam('start_date')));
-        $end_date = strtotime(urldecode($request->getParam('end_date')));
-        if (!$start_date || !$end_date)
+        $startDate = strtotime(urldecode($request->getParam('start_date')));
+        $endDate = strtotime(urldecode($request->getParam('end_date')));
+        if (!$startDate || !$endDate)
             throw new Exception('Start and end dates are required', 400);
 
         $page = (int) $request->getParam('page');
@@ -27,10 +45,9 @@ class Auctane_Api_Model_Action_Export {
         /* @var $orders Mage_Sales_Model_Mysql4_Order_Collection */
         $orders = Mage::getResourceModel('sales/order_collection');
         // might use 'created_at' attribute instead
-        $orders->addAttributeToFilter('updated_at', array(
-            'from' => date('Y-m-d H:i:s', $start_date),
-            'to' => date('Y-m-d H:i:s', $end_date)
-        ));
+        $from = date('Y-m-d H:i:s', $startDate);
+        $end = date('Y-m-d H:i:s', $endDate);
+        $orders->addAttributeToFilter('updated_at', array('from' => $from,'to' => $end));
         if ($store)
             $orders->addAttributeToFilter('store_id', $store->getId());
         if ($page > 0)
@@ -46,11 +63,23 @@ class Auctane_Api_Model_Action_Export {
                 ->setBody($xml->outputMemory(true));
     }
 
-    protected function _getExportPageSize() {
+     /**
+     * get the size of page
+     */
+    protected function _getExportPageSize()
+    {
         return (int) Mage::getStoreConfig('auctaneapi/config/exportPageSize');
     }
 
-    protected function _writeOrders(Varien_Data_Collection $orders, XMLWriter $xml, $storeId = null) {
+    /**
+     * Write the ordes in xml file
+     *
+     * @param Varien_Data_Collection $orders
+     * @param XMLWriter $xml
+     * @param integer $storeId
+     */
+    protected function _writeOrders(Varien_Data_Collection $orders, XMLWriter $xml, $storeId = null)
+    {
         $xml->startElement('Orders');
         $xml->writeAttribute('pages', $orders->getLastPageNumber());
         foreach ($orders as $order) {
@@ -59,19 +88,24 @@ class Auctane_Api_Model_Action_Export {
         $xml->startElement('Query');
         $xml->writeCdata($orders->getSelectSql());
         $xml->endElement(); // Query
-
         $xml->startElement('Version');
         $xml->writeCdata('Magento ' . Mage::getVersion());
         $xml->endElement(); // Version
-
         $xml->startElement('Extensions');
         $xml->writeCdata(Mage::helper('auctaneapi')->getModuleList());
         $xml->endElement(); // Extensions
-
         $xml->endElement(); // Orders
     }
 
-    protected function _writeOrder(Mage_Sales_Model_Order $order, XMLWriter $xml, $storeId = null) {
+    /**
+     * Write the order in xml file
+     *
+     * @param Mage_Sales_Model_Order $order
+     * @param XMLWriter $xml
+     * @param integer $storeId
+     */
+    protected function _writeOrder(Mage_Sales_Model_Order $order, XMLWriter $xml, $storeId = null)
+    {
         $history = '';
         /* @var $status Mage_Sales_Model_Order_Status */
         foreach ($order->getStatusHistoryCollection() as $status) {
@@ -84,97 +118,63 @@ class Auctane_Api_Model_Action_Export {
         if ($history) {
             $order->setStatusHistoryText($history);
         }
-
         /* @var $gift Mage_GiftMessage_Model_Message */
         $gift = Mage::helper('giftmessage/message')->getGiftMessage($order->getGiftMessageId());
         $order->setGift($gift->isObjectNew() ? 'false' : 'true');
+        
+        $sender = $gift->getSender();
+        $recipient = $gift->getRecipient();
+        
         if (!$gift->isObjectNew()) {
-            $order->setGiftMessage(sprintf("From: %s\nTo: %s\nMessage: %s", $gift->getSender(), $gift->getRecipient(), $gift->getMessage()));
+            $message = sprintf("From: %s\nTo: %s\nMessage: %s", $sender, $recipient, $gift->getMessage());
+            $order->setGiftMessage($message);
         }
-
         $helper = Mage::helper('auctaneapi');
-
         $xml->startElement('Order');
-
-        if ($helper->getExportPriceType($order->getStoreId()) == Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {
+        $price = Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE;
+        if ($helper->getExportPriceType($order->getStoreId()) == $price) {
             $helper->fieldsetToXml('base_sales_order', $order, $xml);
         } else {
             $helper->fieldsetToXml('sales_order', $order, $xml);
         }
-
         $xml->startElement('Customer');
         $xml->startElement('CustomerCode');
         $xml->writeCdata($order->getCustomerEmail());
         $xml->endElement(); // CustomerCode
-
         $xml->startElement('BillTo');
         $helper->fieldsetToXml('sales_order_billing_address', $order->getBillingAddress(), $xml);
         $xml->endElement(); // BillTo
-
         $xml->startElement('ShipTo');
         $helper->fieldsetToXml('sales_order_shipping_address', $order->getShippingAddress(), $xml);
         $xml->endElement(); // ShipTo
-
         $xml->endElement(); // Customer
-
         /** add purchase order nubmer */
         Mage::helper('auctaneapi')->writePoNumber($order, $xml);
 
         $xml->startElement('Items');
-        /* @var $item Mage_Sales_Model_Order_Item */
-        $bundleItems = array();
-        $orderItems = array();
-        $intCnt = 0;
         //Check for the bundle child product to import
         $intImportChildProducts = Mage::getStoreConfig('auctaneapi/general/import_child_products');
+        
+        /* @var $item Mage_Sales_Model_Order_Item */
         foreach ($order->getItemsCollection($helper->getIncludedProductTypes()) as $item) {
-            /* @var $product Mage_Catalog_Model_Product */
-            $product = Mage::getModel('catalog/product')
-                    ->setStoreId($storeId)
-                    ->load($item->getProductId());
-            $productId = $product->getId();
-
-            $boolIsBundleProduct = false;
-            if ($product->getTypeId() === 'bundle') {
-                //Get all bundle items of this bundle product
-                $bundleItems = array_flip(Mage::helper('auctaneapi')->getBundleItems($productId));
-                $boolIsBundleProduct = true;
-            }
+           $isBundle = 0;
             //Check for the parent bundle item type
             $parentItem = $this->_getOrderItemParent($item);
-            if ($parentItem) {
-                if ($intImportChildProducts == 2 && $parentItem->getProductType() === 'bundle') {
+            if ($parentItem->getProductType() === 'bundle') {
+                if ($intImportChildProducts == 2) {
                     continue;
+                } else {
+                    $isBundle = 1;
                 }
             }
-
-            if (isset($bundleItems[$productId])) {
-                //Remove item from bundle product items
-                unset($bundleItems[$productId]);
-                $orderItems[$intCnt]['item'] = $item;
-                $orderItems[$intCnt]['bundle'] = 1;
-            } else {
-                //These are items for next processing
-                $orderItems[$intCnt]['item'] = $item;
-                $orderItems[$intCnt]['bundle'] = 0;
-
-                if ($boolIsBundleProduct == true) {
-                    $orderItems[$intCnt]['bundle'] = 2;
-                }
-            }
-            $intCnt++;
+            $this->_orderItem($item, $xml, $storeId, $isBundle);
         }
-
-        foreach ($orderItems as $key => $item) {
-            $this->_writeOrderItem($item['item'], $xml, $storeId, $item['bundle']);
-        }
-
+        
         $intImportDiscount = Mage::getStoreConfig('auctaneapi/general/import_discounts');
-
         if ($intImportDiscount == 1) { // Import Discount is true
             $discounts = array();
             if ($order->getData('auctaneapi_discounts')) {
-                $discounts = @unserialize($order->getData('auctaneapi_discounts'));
+                $discounts = unserialize($order->getData('auctaneapi_discounts'));
                 if (is_array($discounts)) {
                     $aggregated = array();
                     foreach ($discounts as $key => $discount) {
@@ -189,37 +189,54 @@ class Auctane_Api_Model_Action_Export {
                 }
             }
         }
-
         $xml->endElement(); // Items
-
         $xml->endElement(); // Order
     }
 
-    protected function _writeOrderItem(Mage_Sales_Model_Order_Item $item, XMLWriter $xml, $storeId = null, $isBundle = 0) {
+    /**
+     * Write the order item in xml file
+     *
+     * @param Mage_Sales_Model_Order_Item $item
+     * @param XMLWriter $xml
+     * @param integer $storeId
+     * @param boolean $isBundle
+     */
+    protected function _orderItem(Mage_Sales_Model_Order_Item $item, XMLWriter $xml, $storeId = null, $isBundle = 0)
+    {
         // inherit some attributes from parent order item
         if ($item->getParentItemId() && !$item->getParentItem()) {
             $item->setParentItem(Mage::getModel('sales/order_item')->load($item->getParentItemId()));
         }
+        
+        $exclude = Mage::helper('auctaneapi')->isExcludedProductType($item->getParentItem()->getProductType());
         // only inherit if parent has been hidden
-        if ($item->getParentItem() && ($item->getPrice() == 0.000) && (Mage::helper('auctaneapi')->isExcludedProductType($item->getParentItem()->getProductType()))) {
+        if ($item->getParentItem() && ($item->getPrice() == 0.000) && $exclude) {
             //set the store price of item from parent item
             $item->setPrice($item->getParentItem()->getPrice());
             //set the base price of item from parent item
             $item->setBasePrice($item->getParentItem()->getBasePrice());
         }
 
+        if (!$item->getGiftMessageId() && $item->getParentItem()) {
+             $giftId = $item->getParentItem()->getGiftMessageId();
+        } else {
+            $giftId = $item->getGiftMessageId();
+        }
         /* @var $gift Mage_GiftMessage_Model_Message */
-        $gift = Mage::helper('giftmessage/message')->getGiftMessage(
-                !$item->getGiftMessageId() && $item->getParentItem() ? $item->getParentItem()->getGiftMessageId() : $item->getGiftMessageId());
+        $gift = Mage::helper('giftmessage/message')->getGiftMessage($giftId);
         $item->setGift($gift->isObjectNew() ? 'false' : 'true');
+        $sender = $gift->getSender();
+        $recipient = $gift->getRecipient();
         if (!$gift->isObjectNew()) {
-            $item->setGiftMessage(sprintf("From: %s\nTo: %s\nMessage: %s", $gift->getSender(), $gift->getRecipient(), $gift->getMessage()));
+            $message = sprintf("From: %s\nTo: %s\nMessage: %s", $sender, $recipient, $gift->getMessage());
+            $item->setGiftMessage($message);
         }
 
-        /* @var $product Mage_Catalog_Model_Product */
+       /* @var $product Mage_Catalog_Model_Product */
         $product = Mage::getModel('catalog/product')
                 ->setStoreId($storeId)
                 ->load($item->getProductId());
+        
         // inherit some attributes from parent product item
         if (($parentProduct = $this->_getOrderItemParentProduct($item, $storeId))) {
             if (!$product->getImage() || ($product->getImage() == 'no_selection'))
@@ -230,12 +247,11 @@ class Auctane_Api_Model_Action_Export {
                 $product->setThumbnail($parentProduct->getThumbnail());
         }
 
-
         $xml->startElement('Item');
 
         $helper = Mage::helper('auctaneapi');
-        if (Mage::helper('auctaneapi')->getExportPriceType($item->getOrder()->getStoreId()) ==
-                Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {
+        $storeId = Mage::helper('auctaneapi')->getExportPriceType($item->getOrder()->getStoreId());
+        if ($storeId == Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {
             $helper->fieldsetToXml('base_sales_order_item', $item, $xml, $isBundle);
         } else {
             $helper->fieldsetToXml('sales_order_item', $item, $xml, $isBundle);
@@ -248,13 +264,13 @@ class Auctane_Api_Model_Action_Export {
         $appEmulation->stopEnvironmentEmulation($initialEnvironmentInfo);
 
         $xml->startElement('Options');
-        $this->_writeOrderProductAttribute($product, $xml, $storeId);
+        $this->_productAttribute($product, $xml, $storeId);
         // items may have several custom options chosen by customer
         foreach ((array) $item->getProductOptionByCode('options') as $option) {
             $this->_writeOrderItemOption($option, $xml, $storeId);
         }
         $buyRequest = $item->getProductOptionByCode('info_buyRequest');
-        if ($buyRequest && @$buyRequest['super_attribute']) {
+        if ($buyRequest && isset($buyRequest['super_attribute'])) {
             // super_attribute is non-null and non-empty, there must be a Configurable involved
             $parentItem = $this->_getOrderItemParent($item);
             /* export configurable custom options as they are stored in parent */
@@ -266,11 +282,18 @@ class Auctane_Api_Model_Action_Export {
             }
         }
         $xml->endElement(); // Options
-
         $xml->endElement(); // Item
     }
 
-    protected function _writeOrderProductAttribute(Mage_Catalog_Model_Product $product, XMLWriter $xml, $storeId = null) {
+     /**
+     * Write the product attribute used in order
+     *
+     * @param Mage_Catalog_Model_Product $product
+     * @param XMLWriter $xml
+     * @param integer $storeId
+     */
+    protected function _productAttribute(Mage_Catalog_Model_Product $product, XMLWriter $xml, $storeId = null)
+    {
         // custom attributes are specified in Admin > Configuration > Sales > Auctane Shipstation API
         // static because attributes can be cached, they do not change during a request
         static $attrs = null;
@@ -288,9 +311,7 @@ class Auctane_Api_Model_Action_Export {
                     $value = $product->getAttributeText($attr->getName());
                     if (is_array($value))
                         $value = implode(',', $value);
-                }
-                // else is a static value
-                else {
+                } else {
                     $value = $product->getDataUsingMethod($attr->getName());
                 }
                 // fake an item option
@@ -303,7 +324,14 @@ class Auctane_Api_Model_Action_Export {
         }
     }
 
-    protected function _writeOrderItemOption($option, XMLWriter $xml) {
+    /**
+     * Write the options used in order
+     *
+     * @param string $option
+     * @param XMLWriter $xml
+     */
+    protected function _writeOrderItemOption($option, XMLWriter $xml)
+    {
         $xml->startElement('Option');
         Mage::helper('auctaneapi')->fieldsetToXml('sales_order_item_option', $option, $xml);
         $xml->endElement(); // Option
@@ -315,7 +343,8 @@ class Auctane_Api_Model_Action_Export {
      * @param Mage_Sales_Model_Order_Item $item
      * @return Mage_Sales_Model_Order_Item
      */
-    protected function _getOrderItemParent(Mage_Sales_Model_Order_Item $item) {
+    protected function _getOrderItemParent(Mage_Sales_Model_Order_Item $item)
+    {
         if ($item->getParentItem()) {
             return $item->getParentItem();
         }
@@ -327,11 +356,14 @@ class Auctane_Api_Model_Action_Export {
     }
 
     /**
+     * Get the parent product of current item in a order
+     * 
      * @param Mage_Sales_Model_Order_Item $item
      * @param mixed $storeId
      * @return Mage_Catalog_Model_Product
      */
-    protected function _getOrderItemParentProduct(Mage_Sales_Model_Order_Item $item, $storeId = null) {
+    protected function _getOrderItemParentProduct(Mage_Sales_Model_Order_Item $item, $storeId = null)
+    {
         if ($item->getParentItemId()) {
             // cannot use getParentItem() because we stripped parents from the order
             $parentItem = $this->_getOrderItemParent($item);

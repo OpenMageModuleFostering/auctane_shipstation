@@ -21,6 +21,8 @@ class Auctane_Api_AuctaneController extends Mage_Api_Controller_Action
 {
     public function indexAction()
     {
+        //To allow cross browser compatibility.
+        header('Access-Control-Allow-Origin: *');
         $this->_getServer()->init($this, 'auctane')
             ->run();
     }

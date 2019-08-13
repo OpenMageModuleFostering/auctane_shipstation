@@ -1,4 +1,21 @@
 <?php
+/**
+ * ShipStation
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@auctane.com so we can send you a copy immediately.
+ *
+ * @category   Shipping
+ * @package    Auctane_Api
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
 
 class Auctane_Api_Model_Observer
 {
@@ -18,7 +35,7 @@ class Auctane_Api_Model_Observer
         $address = $observer->getAddress();
         $rule = $observer->getRule();
                 
-        $discounts = @unserialize($quote->getAuctaneapiDiscounts());
+        $discounts = unserialize($quote->getAuctaneapiDiscounts());
 
         if (!self::$_counter) {
             $discounts = array();
@@ -26,7 +43,7 @@ class Auctane_Api_Model_Observer
             self::$_counter++;
         } 
 
-        if (!isset(self::$_shippingAmountProcessed[$rule->getId()]) &&  $address->getShippingAmount()) {
+        if (!isset(self::$_shippingAmountProcessed[$rule->getId()]) && $address->getShippingAmount()) {
             $shippingAmount = $address->getShippingAmountForDiscount();
             if ($shippingAmount !== null) {
                 $baseShippingAmount = $address->getBaseShippingAmountForDiscount();
@@ -35,9 +52,8 @@ class Auctane_Api_Model_Observer
             }
 
             //check for discount applied on shipping amount or not
-            if(!$rule['apply_to_shipping'])
+            if (!$rule['apply_to_shipping'])
                 $baseShippingAmount = 0;
-
 
             $baseDiscountAmount = 0;
             $rulePercent = min(100, $rule->getDiscountAmount());
@@ -45,8 +61,8 @@ class Auctane_Api_Model_Observer
                 case Mage_SalesRule_Model_Rule::TO_PERCENT_ACTION:
                     $rulePercent = max(0, 100 - $rule->getDiscountAmount());
                 case Mage_SalesRule_Model_Rule::BY_PERCENT_ACTION:
-                    $baseDiscountAmount = ($baseShippingAmount -
-                            $address->getBaseShippingDiscountAmount()) * $rulePercent / 100;
+                    $shipDiscount = $baseShippingAmount - $address->getBaseShippingDiscountAmount();
+                    $baseDiscountAmount = ($shipDiscount) * $rulePercent / 100;
                     break;
                 case Mage_SalesRule_Model_Rule::TO_FIXED_ACTION:
                     $baseDiscountAmount = $baseShippingAmount - $rule->getDiscountAmount();
@@ -60,43 +76,29 @@ class Auctane_Api_Model_Observer
                         self::$_cartRules[$rule->getId()] = $rule->getDiscountAmount();
                     }
                     if (self::$_cartRules[$rule->getId()] > 0) {
-                        $baseDiscountAmount = min(
-                                $baseShippingAmount - $address->getBaseShippingDiscountAmount(), self::$_cartRules[$rule->getId()]
-                        );
+                        $shipAmount = $baseShippingAmount - $address->getBaseShippingDiscountAmount();
+                        $baseDiscountAmount = min($shipAmount, self::$_cartRules[$rule->getId()]);
                         self::$_cartRules[$rule->getId()] -= $baseDiscountAmount;
                     }
                     break;
             }
-            
-            $ruleDiscount = 0;                
-            $left = $baseShippingAmount - ($address->getBaseShippingDiscountAmount() + $baseDiscountAmount);                
+
+            $ruleDiscount = 0;
+            $left = $baseShippingAmount - ($address->getBaseShippingDiscountAmount() + $baseDiscountAmount);
             if ($left >= 0)
                 $ruleDiscount = $baseDiscountAmount;
-                
-            $discounts[$rule->getId() . '-' . $observer->getItem()->getId() . '-' . uniqid()] =
-                    $observer->getResult()->getBaseDiscountAmount() + $ruleDiscount;
+            $discountId = $rule->getId() . '-' . $observer->getItem()->getId() . '-' . uniqid();
+            $discounts[$discountId] = $observer->getResult()->getBaseDiscountAmount() + $ruleDiscount;
+            $shipDiscount = min($address->getBaseShippingDiscountAmount() + $baseDiscountAmount, $baseShippingAmount);
+            $address->setBaseShippingDiscountAmount($shipDiscount);
 
-            $address->setBaseShippingDiscountAmount(min(
-                   $address->getBaseShippingDiscountAmount() + $baseDiscountAmount, 
-                    $baseShippingAmount
-            ));
-            
             self::$_shippingAmountProcessed[$rule->getId()] = true;
-        }
-        else {
-              $discounts[$rule->getId() . '-' . $observer->getItem()->getId() . '-' . uniqid()] =
-                    $observer->getResult()->getBaseDiscountAmount();
+        } else {
+            $discountId = $rule->getId() . '-' . $observer->getItem()->getId() . '-' . uniqid();
+            $discounts[$discountId] = $observer->getResult()->getBaseDiscountAmount();
         }
                 
-        $quote->setAuctaneapiDiscounts(@serialize($discounts));
+        $quote->setAuctaneapiDiscounts(serialize($discounts));
     }
-    
-    /**
-     * Export quote discounts info to order
-     * @param Varien_Event_Observer $observer
-     */    
-    public function salesConvertQuoteToOrder($observer)
-    {
-        $observer->getOrder()->setAuctaneapiDiscounts($observer->getQuote()->getAuctaneapiDiscounts());
-    }  
+      
 }

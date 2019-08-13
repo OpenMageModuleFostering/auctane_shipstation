@@ -1,33 +1,50 @@
 <?php
+/**
+ * ShipStation
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@auctane.com so we can send you a copy immediately.
+ *
+ * @category   Shipping
+ * @package    Auctane_Api
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
 
-class Auctane_Api_Model_Action_Shipnotify {
-
+class Auctane_Api_Model_Action_Shipnotify
+{
     /**
      * Perform a notify using POSTed data.
-     *
      * See Auctane API specification.
      *
      * @param Mage_Core_Controller_Request_Http $request
      * @throws Exception
      */
-    public function process(Mage_Core_Controller_Request_Http $request) {
+    public function process(Mage_Core_Controller_Request_Http $request)
+    {
         // Raw XML is POSTed to this stream
         $xml = simplexml_load_file('php://input');
 
         // load some objects
         $order = $this->_getOrder($xml->OrderNumber);
-        $qtys = $this->_getOrderItemQtys(@$xml->Items, $order);
+        $qtys = $this->_getOrderItemQtys($xml->Items, $order);
         $shipment = $this->_getOrderShipment($order, $qtys);
 
         // this is where tracking is actually added
         $track = Mage::getModel('sales/order_shipment_track')
                 ->setNumber($xml->TrackingNumber)
                 ->setCarrierCode($xml->Carrier)
-                ->setTitle($xml->Service);
+                ->setTitle(strtoupper($xml->Carrier));
         $shipment->addTrack($track);
 
         // 'NotifyCustomer' must be "true" or "yes" to trigger an email
-        $notify = filter_var(@$xml->NotifyCustomer, FILTER_VALIDATE_BOOLEAN);
+        $notify = filter_var($xml->NotifyCustomer, FILTER_VALIDATE_BOOLEAN);
 
         $capture = filter_var($request->getParam('capture'), FILTER_VALIDATE_BOOLEAN);
         if ($capture && $order->canInvoice()) {
@@ -40,16 +57,16 @@ class Auctane_Api_Model_Action_Shipnotify {
         }
 
         // Internal notes are only visible to admin
-        if (@$xml->InternalNotes) {
+        if ($xml->InternalNotes) {
             $shipment->addComment($xml->InternalNotes);
         }
         // Customer notes have 'Visible On Frontend' set
         if ($notify) {
             // if no NotesToCustomer then comment is empty string
-            $shipment->sendEmail(true, (string) @$xml->NotesToCustomer)
+            $shipment->sendEmail(true, (string) $xml->NotesToCustomer)
                     ->setEmailSent(true);
         }
-        if (@$xml->NotesToCustomer) {
+        if ($xml->NotesToCustomer) {
             $shipment->addComment($xml->NotesToCustomer, $notify, true);
         }
 
@@ -63,7 +80,7 @@ class Auctane_Api_Model_Action_Shipnotify {
         }
         $transaction->save();
 
-        if ($order->canInvoice() && !$order->canShip()) { // then silently invoice if order is shipped to move status to "Complete")
+        if ($order->canInvoice() && !$order->canShip()) {
             $invoice = $order->prepareInvoice();
             $invoice->setRequestedCaptureCase($invoice->canCapture() ? 'online' : 'offline')
                     ->register() // captures & updates order totals
@@ -86,7 +103,8 @@ class Auctane_Api_Model_Action_Shipnotify {
      *
      * @return string
      */
-    protected function _getInvoiceComment() {
+    protected function _getInvoiceComment()
+    {
         return Mage::getStoreConfig('auctaneapi/config/invoiceComment');
     }
 
@@ -94,7 +112,8 @@ class Auctane_Api_Model_Action_Shipnotify {
      * @param string $carrierCode
      * @return Mage_Shipping_Model_Carrier_Interface
      */
-    protected function _getCarrier($carrierCode) {
+    protected function _getCarrier($carrierCode)
+    {
         $carrierCode = strtolower($carrierCode);
         $carrierModel = Mage::getStoreConfig("carriers/{$carrierCode}/model");
         if (!$carrierModel)
@@ -112,14 +131,16 @@ class Auctane_Api_Model_Action_Shipnotify {
      * @param string $orderIncrementId
      * @return Mage_Sales_Model_Order
      */
-    protected function _getOrder($orderIncrementId) {
+    protected function _getOrder($orderIncrementId)
+    {
         $order = Mage::getModel('sales/order')->loadByIncrementId($orderIncrementId);
         if ($order->isObjectNew())
             throw new Exception("Order '{$orderIncrementId}' does not exist", 400);
         return $order;
     }
 
-    protected function _getOrderItemQtys(SimpleXMLElement $xmlItems, Mage_Sales_Model_Order $order) {
+    protected function _getOrderItemQtys(SimpleXMLElement $xmlItems, Mage_Sales_Model_Order $order)
+    {
         $shipAll = !count((array) $xmlItems);
         /* @var $items Mage_Sales_Model_Mysql4_Order_Item_Collection */
         $items = $order->getItemsCollection();
@@ -137,7 +158,7 @@ class Auctane_Api_Model_Action_Shipnotify {
                 continue;
             }
             // search for item by SKU
-            @list($xmlItem) = $xmlItems->xpath(sprintf('//Item/SKU[text()="%s"]/..', addslashes($item->getSku())));
+            list($xmlItem) = $xmlItems->xpath(sprintf('//Item/SKU[text()="%s"]/..', addslashes($item->getSku())));
             if ($xmlItem) {
                 // store quantity by order item ID, not by SKU
                 $qtys[$item->getId()] = (float) $xmlItem->Quantity;
@@ -170,7 +191,8 @@ class Auctane_Api_Model_Action_Shipnotify {
      * @param array $qtys
      * @return Mage_Sales_Model_Order_Shipment
      */
-    protected function _getOrderShipment(Mage_Sales_Model_Order $order, $qtys) {
+    protected function _getOrderShipment(Mage_Sales_Model_Order $order, $qtys)
+    {
         $shipment = $order->prepareShipment($qtys);
         $shipment->register();
         $order->setIsInProgress(true);
