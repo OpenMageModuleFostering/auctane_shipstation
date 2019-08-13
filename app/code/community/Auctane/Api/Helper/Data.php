@@ -36,7 +36,6 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
     {
         $fields = (array) Mage::getConfig()->getFieldset($fieldSet);
         //Check for the importing the child product settings
-        $isChildProducts = Mage::getStoreConfig('auctaneapi/general/import_child_products');
         foreach ($fields as $field => $dest) {
             if (!$dest->auctaneapi)
                 continue;
@@ -48,7 +47,7 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
             
             $value = $source instanceof Varien_Object ? $source->getDataUsingMethod($field) : $sourceField;
             //Set the child item price of bundle products to 0
-            if ($isBundle == 1 && $isChildProducts == 1 && ($name == 'UnitPrice' || $name == 'Weight')) {
+            if ($isBundle == 1 && ($name == 'UnitPrice' || $name == 'Weight')) {
                 $value = 0;
             }
             $xml->startElement((string) $name);
@@ -115,7 +114,6 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
 
     /**
      * @return array of string names
-     * @see "auctane_exclude" nodes in config.xml
      */
     public function getIncludedProductTypes()
     {
@@ -129,7 +127,7 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
     }
 
     /**
-     * Indicate if a {$type} is specifically excluded by config
+     * Indicate if a {$type} is excluded
      * 
      * @param string $type
      * @return bool
