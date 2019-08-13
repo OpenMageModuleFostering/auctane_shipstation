@@ -122,12 +122,22 @@ class Auctane_Api_Model_Action_Shipnotify {
 	}
 
 	protected function _getOrderItemQtys(SimpleXMLElement $xmlItems, Mage_Sales_Model_Order $order)
-	{
+	{       
+        $shipAll = !count((array) $xmlItems);   
 		/* @var $items Mage_Sales_Model_Mysql4_Order_Item_Collection */
 		$items = $order->getItemsCollection();
 		$qtys = array();
 		/* @var $item Mage_Sales_Model_Order_Item */
 		foreach ($items as $item) {
+            /* collect all items qtys if shipall flag is true */
+            if($shipAll) {                
+                if ($item->getParentItemId()) {
+                    $qtys[$item->getParentItemId()] = $item->getQtyOrdered();
+                } else {
+                    $qtys[$item->getId()] = $item->getQtyOrdered();
+                }
+                continue;
+            }           
 			// search for item by SKU
 			@list($xmlItem) = $xmlItems->xpath(sprintf('//Item/SKU[text()="%s"]/..',
 				addslashes($item->getSku())));

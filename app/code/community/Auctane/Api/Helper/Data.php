@@ -48,6 +48,44 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
 			$xml->endElement();
 		}
 	}
+    
+    /**
+     * Write discounts info to order
+     * @param array $discount
+     * @param XMLWriter $xml
+     */
+    public function writeDiscountsInfo(array $discounts, XMLWriter $xml)
+    {
+        foreach ($discounts as $rule => $total) {
+            $xml->startElement('Item');
+
+            $salesRule = Mage::getModel('salesrule/rule')->load($rule);
+
+            if (!$salesRule->getId()) {
+                continue;
+            }
+            
+            $xml->startElement('SKU');            
+                $xml->writeCdata($salesRule->getCouponCode() ? $salesRule->getCouponCode() : 'AUTOMATIC_DISCOUNT');			 
+            $xml->endElement();
+            $xml->startElement('Name');            
+                $xml->writeCdata($salesRule->getName());			 
+            $xml->endElement();
+             $xml->startElement('Adjustment');            
+                $xml->writeCdata('true');			 
+            $xml->endElement();            
+            $xml->startElement('Quantity');            
+                $xml->text(1);			 
+            $xml->endElement();
+            $xml->startElement('UnitPrice');            
+                $xml->text(-$total);			 
+            $xml->endElement();
+            
+            $xml->endElement();
+        }
+    }
+    
+  
 
 	/**
 	 * @return array of string names

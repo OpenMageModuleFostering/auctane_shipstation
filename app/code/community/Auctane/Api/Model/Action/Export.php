@@ -123,6 +123,30 @@ class Auctane_Api_Model_Action_Export {
 		foreach ($order->getItemsCollection($helper->getIncludedProductTypes()) as $item) {
 			$this->_writeOrderItem($item, $xml, $storeId);
 		}
+        
+        
+        
+        $discounts = array();        
+        if($order->getData('auctaneapi_discounts')) {
+            $discounts = @unserialize($order->getData('auctaneapi_discounts'));
+            if(is_array($discounts)) {
+               $aggregated = array();
+               foreach($discounts as $key => $discount) {                   
+                   $keyData = explode('-', $key);                   
+                   if(isset($aggregated[$keyData[0]])) {
+                       $aggregated[$keyData[0]] += $discount;
+                   }
+                   else {
+                      $aggregated[$keyData[0]] =  $discount;
+                   }                  
+               }               
+               Mage::helper('auctaneapi')->writeDiscountsInfo($aggregated, $xml);
+            }        
+        }
+        
+        
+        
+        
 		$xml->endElement(); // Items
 
 		$xml->endElement(); // Order

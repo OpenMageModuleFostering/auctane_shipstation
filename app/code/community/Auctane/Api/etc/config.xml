@@ -19,11 +19,32 @@
 <config>
 	<modules>
 		<Auctane_Api>
-			<version>1.3.10</version>
+			<version>1.3.11</version>
 		</Auctane_Api>
 	</modules>
 
 	<global>
+            
+            <events>
+                <salesrule_validator_process>
+                    <observers>
+                        <auctaneapi_salesrule_process>
+                            <class>auctaneapi/observer</class>
+                            <method>salesruleProcess</method>
+                        </auctaneapi_salesrule_process>                       
+                    </observers>                     
+                </salesrule_validator_process>
+                <sales_convert_quote_to_order>
+                    <observers>
+                        <auctaneapi_quote_to_order>
+                            <class>auctaneapi/observer</class>
+                            <method>salesConvertQuoteToOrder</method>
+                        </auctaneapi_quote_to_order>
+                    </observers>
+                </sales_convert_quote_to_order>                   
+            </events>
+            
+            
 		<helpers>
 			<auctaneapi>
 				<class>Auctane_Api_Helper</class>
@@ -35,7 +56,12 @@
 				<resourceModel>auctaneapi_mysql4</resourceModel>
 			</auctaneapi>
 			<auctaneapi_mysql4>
-				<class>Auctane_Api_Model_Mysql4</class>
+                            <class>Auctane_Api_Model_Mysql4</class>
+                            <entities>
+                                <order_discount>
+                                    <table>auctane_api_discounts</table>
+                                </order_discount>
+                            </entities>
 			</auctaneapi_mysql4>
 		</models>
 		<resources>
@@ -46,6 +72,11 @@
 			<auctaneapi_read>
 				<connection><use>core_read</use></connection>
 			</auctaneapi_read>
+                        <auctaneapi_setup>
+                            <setup>
+                                <module>Auctane_Api</module>
+                            </setup>
+                        </auctaneapi_setup>
 		</resources>
 
 		<fieldsets>
