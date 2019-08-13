@@ -183,6 +183,34 @@
 		</rewrite>
 		-->
 	</global>
+	<adminhtml>
+		<layout>
+			<updates>
+				<auctaneapi>
+					<file>auctaneapi.xml</file>
+				</auctaneapi>
+			</updates>
+		</layout>
+		<acl>
+		    <resources>
+				<admin>
+				    <children>
+				        <system>
+		                	<children>
+		                		<config>
+		                			<children>
+			                			 <auctaneapi translate="title" module="auctaneapi">
+											<title>ShipStation</title>
+						                 </auctaneapi>
+		                			</children>
+		                		</config>
+							</children>
+						</system>
+				    </children>
+				</admin>
+		    </resources>
+		</acl>
+	</adminhtml>
 
 	<frontend>
 		<routers>
@@ -211,7 +239,8 @@
 				<realm>Auctane ShipStation</realm>
 				<exportPageSize>100</exportPageSize>
 				<invoiceComment>Issued by Auctane ShipStation.</invoiceComment>
-                                <export_price>1</export_price>
+                <export_price>1</export_price>
+                <import_discounts>1</import_discounts>
 			</config>
 		</auctaneapi>
 	</default>

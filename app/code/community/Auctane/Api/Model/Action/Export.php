@@ -133,6 +133,7 @@ class Auctane_Api_Model_Action_Export {
 		$bundleItems = array();
 		$orderItems = array();
 
+		$intCnt = 0;
 		foreach ($order->getItemsCollection($helper->getIncludedProductTypes()) as $item) {
 			/* @var $product Mage_Catalog_Model_Product */
 			$product = Mage::getModel('catalog/product')
@@ -140,48 +141,63 @@ class Auctane_Api_Model_Action_Export {
 				->load($item->getProductId());
 			$productId = $product->getId();
 
+			$boolIsBundleProduct = false;
+
 			if($product->getTypeId() === 'bundle'){
 				//Get all bundle items of this bundle product
 				$bundleItems = array_flip(Mage::helper('auctaneapi')->getBundleItems($productId));
+				$boolIsBundleProduct = true;
 			}
 
 			if(isset($bundleItems[$productId])){
 				//Remove item from bundle product items
 			    unset($bundleItems[ $productId ]);
+			    $orderItems[$intCnt]['item'] = $item;
+			    $orderItems[$intCnt]['bundle'] = 1;
 			}else{
 				//These are items for next processing
-				$orderItems[] = $item;
+				$orderItems[$intCnt]['item'] = $item;
+			    $orderItems[$intCnt]['bundle'] = 0;
+
+			    if($boolIsBundleProduct == true){
+			    	$orderItems[$intCnt]['bundle'] = 2;
+			    }
 			}
+			$intCnt++;
 		}   
 
 		foreach ($orderItems as $key=>$item) {
-			$this->_writeOrderItem($item, $xml, $storeId);
+			$this->_writeOrderItem($item['item'], $xml, $storeId, $item['bundle']);
 		}
         
-        $discounts = array();        
-        if($order->getData('auctaneapi_discounts')) {
-            $discounts = @unserialize($order->getData('auctaneapi_discounts'));
-            if(is_array($discounts)) {
-               $aggregated = array();
-               foreach($discounts as $key => $discount) {                   
-                   $keyData = explode('-', $key);                   
-                   if(isset($aggregated[$keyData[0]])) {
-                       $aggregated[$keyData[0]] += $discount;
-                   }
-                   else {
-                      $aggregated[$keyData[0]] =  $discount;
-                   }                  
-               }               
-               Mage::helper('auctaneapi')->writeDiscountsInfo($aggregated, $xml);
-            }        
-        }   
+		$intImportDiscount = Mage::getStoreConfig('auctaneapi/general/import_discounts'); 
+
+		if($intImportDiscount == 1){ // Import Discount is true
+			$discounts = array();        
+	        if($order->getData('auctaneapi_discounts')) {
+	            $discounts = @unserialize($order->getData('auctaneapi_discounts'));
+	            if(is_array($discounts)) {
+	               $aggregated = array();
+	               foreach($discounts as $key => $discount) {                   
+	                   $keyData = explode('-', $key);                   
+	                   if(isset($aggregated[$keyData[0]])) {
+	                       $aggregated[$keyData[0]] += $discount;
+	                   }
+	                   else {
+	                      $aggregated[$keyData[0]] =  $discount;
+	                   }                  
+	               }               
+	               Mage::helper('auctaneapi')->writeDiscountsInfo($aggregated, $xml);
+	            }        
+	        }   
+		} 
                       
 		$xml->endElement(); // Items
 
 		$xml->endElement(); // Order
 	}
 
-	protected function _writeOrderItem(Mage_Sales_Model_Order_Item $item, XMLWriter $xml, $storeId = null)
+	protected function _writeOrderItem(Mage_Sales_Model_Order_Item $item, XMLWriter $xml, $storeId = null, $isBundle = 0)
 	{
 		// inherit some attributes from parent order item
 		if ($item->getParentItemId() && !$item->getParentItem()) {
@@ -225,10 +241,10 @@ class Auctane_Api_Model_Action_Export {
         $helper = Mage::helper('auctaneapi');
         if(Mage::helper('auctaneapi')->getExportPriceType($item->getOrder()->getStoreId()) == 
                 Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {
-            $helper->fieldsetToXml('base_sales_order_item', $item, $xml);
+            $helper->fieldsetToXml('base_sales_order_item', $item, $xml, $isBundle);
         }
         else {
-           $helper->fieldsetToXml('sales_order_item', $item, $xml);
+           $helper->fieldsetToXml('sales_order_item', $item, $xml, $isBundle);
         }
        
 		/* using emulation so that product images come from the correct store */
@@ -271,7 +287,7 @@ class Auctane_Api_Model_Action_Export {
 		static $attrs = null;
 		if (is_null($attrs)) {
 			$attrs = Mage::getResourceModel('eav/entity_attribute_collection');
-			$attrIds = explode(',', Mage::getStoreConfig('sales/auctaneapi/customattributes', $storeId));
+			$attrIds = explode(',', Mage::getStoreConfig('auctaneapi/general/customattributes', $storeId));
 			$attrs->addFieldToFilter('attribute_id', $attrIds);
 		}
 

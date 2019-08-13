@@ -20,6 +20,8 @@
 class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
 {
 
+	private $_strBundleSku = '';
+
 	/**
 	 * Write a source object to an XML stream, mapping fields via a fieldset.
 	 * Fieldsets are nodes in config.xml
@@ -28,7 +30,7 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
 	 * @param array|Varien_Object $source
 	 * @param XMLWriter $xml
 	 */
-	public function fieldsetToXml($fieldset, $source, XMLWriter $xml)
+	public function fieldsetToXml($fieldset, $source, XMLWriter $xml, $isBundle = 0)
 	{
 		$fields = (array) Mage::getConfig()->getFieldset($fieldset);
 		foreach ($fields as $field => $dest) {
@@ -38,6 +40,13 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
 			$value = $source instanceof Varien_Object
 				? $source->getDataUsingMethod($field)
 				: @$source[$field];
+
+			if($isBundle == 1 && $name == 'UnitPrice') {
+				//continue;
+				$value = 0;
+			}
+
+
 			$xml->startElement((string) $name);
 			if (is_numeric($value)) {
 				$xml->text((string) $value);
@@ -149,7 +158,7 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
      */    
     public function getExportPriceType($store)
     {        
-        return Mage::getStoreConfig('sales/auctaneapi/export_price', $store);        
+        return Mage::getStoreConfig('auctaneapi/general/export_price', $store);        
     }
 
     /**
