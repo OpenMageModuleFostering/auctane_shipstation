@@ -29,7 +29,7 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data {
      * @param array|Varien_Object $source
      * @param XMLWriter $xml
      */
-    public function fieldsetToXml($fieldset, $source, XMLWriter $xml, $isBundle = 0, $fltConfigItemPrice = 0) {
+    public function fieldsetToXml($fieldset, $source, XMLWriter $xml, $isBundle = 0) {
         $fields = (array) Mage::getConfig()->getFieldset($fieldset);
         //Check for the importing the child product settings
         $intImportChildProducts = Mage::getStoreConfig('auctaneapi/general/import_child_products');
@@ -41,14 +41,8 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data {
             $value = $source instanceof Varien_Object ? $source->getDataUsingMethod($field) : @$source[$field];
             //Set the child item price of bundle products to 0
             if ($isBundle == 1 && $name == 'UnitPrice' && $intImportChildProducts == 1) {
-                //continue;
                 $value = 0;
             }
-            //set the configurable product base price
-            if ($name == 'UnitPrice' && $fltConfigItemPrice) {
-                $value = $fltConfigItemPrice;
-            }
-
             $xml->startElement((string) $name);
             if (is_numeric($value)) {
                 $xml->text((string) $value);

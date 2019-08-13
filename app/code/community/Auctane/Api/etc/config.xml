@@ -19,12 +19,10 @@
 <config>
 	<modules>
 		<Auctane_Api>
-			<version>1.3.11</version>
+			<version>1.3.26</version>
 		</Auctane_Api>
 	</modules>
-
 	<global>
-            
             <events>
                 <salesrule_validator_process>
                     <observers>
@@ -42,9 +40,7 @@
                         </auctaneapi_quote_to_order>
                     </observers>
                 </sales_convert_quote_to_order>                   
-            </events>
-            
-            
+            </events> 
 		<helpers>
 			<auctaneapi>
 				<class>Auctane_Api_Helper</class>
@@ -78,7 +74,6 @@
                             </setup>
                         </auctaneapi_setup>
 		</resources>
-
 		<fieldsets>
 			<sales_order>
 				<increment_id><auctaneapi>OrderNumber</auctaneapi></increment_id>
@@ -162,7 +157,6 @@
 				<value><auctaneapi>Value</auctaneapi></value>
 			</sales_order_item_option>
 		</fieldsets>
-
 		<catalog>
 			<product>
 				<type>
@@ -173,7 +167,6 @@
 				</type>
 			</product>
 		</catalog>
-
 		<!-- The following node is only necessary for versions of Magento older than 1.3
 		<rewrite>
 			<auctaneapi>
@@ -211,7 +204,6 @@
 		    </resources>
 		</acl>
 	</adminhtml>
-
 	<frontend>
 		<routers>
 			<!-- The following node is only necessary for versions of Magento older than 1.3
@@ -232,7 +224,6 @@
 			</api>
 		</routers>
 	</frontend>
-
 	<default>
 		<auctaneapi>
 			<config>

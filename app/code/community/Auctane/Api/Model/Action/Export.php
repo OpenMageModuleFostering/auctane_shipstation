@@ -17,8 +17,8 @@ class Auctane_Api_Model_Action_Export {
 
         $apiConfigCharset = Mage::getStoreConfig("api/config/charset", $store);
 
-        $start_date = strtotime($request->getParam('start_date'));
-        $end_date = strtotime($request->getParam('end_date'));
+        $start_date = strtotime(urldecode($request->getParam('start_date')));
+        $end_date = strtotime(urldecode($request->getParam('end_date')));
         if (!$start_date || !$end_date)
             throw new Exception('Start and end dates are required', 400);
 
@@ -200,12 +200,12 @@ class Auctane_Api_Model_Action_Export {
         if ($item->getParentItemId() && !$item->getParentItem()) {
             $item->setParentItem(Mage::getModel('sales/order_item')->load($item->getParentItemId()));
         }
-        $fltConfigItemPrice = 0;
         // only inherit if parent has been hidden
         if ($item->getParentItem() && ($item->getPrice() == 0.000) && (Mage::helper('auctaneapi')->isExcludedProductType($item->getParentItem()->getProductType()))) {
+            //set the store price of item from parent item
             $item->setPrice($item->getParentItem()->getPrice());
-            //set the base price of configurable product type
-            $fltConfigItemPrice = $item->getParentItem()->getPrice();
+            //set the base price of item from parent item
+            $item->setBasePrice($item->getParentItem()->getBasePrice());
         }
 
         /* @var $gift Mage_GiftMessage_Model_Message */
@@ -236,7 +236,7 @@ class Auctane_Api_Model_Action_Export {
         $helper = Mage::helper('auctaneapi');
         if (Mage::helper('auctaneapi')->getExportPriceType($item->getOrder()->getStoreId()) ==
                 Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {
-            $helper->fieldsetToXml('base_sales_order_item', $item, $xml, $isBundle, $fltConfigItemPrice);
+            $helper->fieldsetToXml('base_sales_order_item', $item, $xml, $isBundle);
         } else {
             $helper->fieldsetToXml('sales_order_item', $item, $xml, $isBundle);
         }
