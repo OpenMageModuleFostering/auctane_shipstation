@@ -85,8 +85,21 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
         }
     }
     
-  
-
+    /**
+     * Write purchase order info to order
+     * @param Mage_Sales_Model_Order $order
+     * @param XMLWriter $xml
+     */    
+    public function writePoNumber($order, $xml)
+    {
+        $payment = $order->getPayment();         
+        $xml->startElement('PO');           
+        if($payment) {            
+            $xml->writeCdata($payment->getPoNumber());	
+        }
+        $xml->endElement();      
+    }
+    
 	/**
 	 * @return array of string names
 	 * @see "auctane_exclude" nodes in config.xml

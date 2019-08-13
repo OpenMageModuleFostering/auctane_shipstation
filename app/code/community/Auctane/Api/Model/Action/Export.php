@@ -117,7 +117,10 @@ class Auctane_Api_Model_Action_Export {
 		$xml->endElement(); // ShipTo
 
 		$xml->endElement(); // Customer
-
+        
+        /** add purchase order nubmer */        
+        Mage::helper('auctaneapi')->writePoNumber($order, $xml);
+       
 		$xml->startElement('Items');
 		/* @var $item Mage_Sales_Model_Order_Item */
 		foreach ($order->getItemsCollection($helper->getIncludedProductTypes()) as $item) {
@@ -210,6 +213,10 @@ class Auctane_Api_Model_Action_Export {
 		if ($buyRequest && @$buyRequest['super_attribute']) {
 			// super_attribute is non-null and non-empty, there must be a Configurable involved
 			$parentItem = $this->_getOrderItemParent($item);
+            /* export configurable custom options as they are stored in parent */
+            foreach ((array) $parentItem->getProductOptionByCode('options') as $option) {             
+                $this->_writeOrderItemOption($option, $xml, $storeId);
+            }            
 			foreach ((array) $parentItem->getProductOptionByCode('attributes_info') as $option) {
 				$this->_writeOrderItemOption($option, $xml, $storeId);
 			}

@@ -16,8 +16,7 @@ class Auctane_Api_Model_Action_Shipnotify {
 		$xml = simplexml_load_file('php://input');
 
 		// load some objects
-		$order = $this->_getOrder($xml->OrderNumber);
-		$carrier = $this->_getCarrier(@$xml->Carrier);
+		$order = $this->_getOrder($xml->OrderNumber);		 
 		$qtys = $this->_getOrderItemQtys(@$xml->Items, $order);
 		$shipment = $this->_getOrderShipment($order, $qtys);
 
