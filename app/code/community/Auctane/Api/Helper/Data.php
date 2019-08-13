@@ -46,6 +46,17 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
                 $sourceField = $source[$field];
             
             $value = $source instanceof Varien_Object ? $source->getDataUsingMethod($field) : $sourceField;
+            if ($name == 'ImageUrl') {
+                //Image directory path
+                $mediaDir = Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_MEDIA);
+                //get the image set from the admin
+                $value = $mediaDir. 'catalog/product' . $source->getSmallImage();
+                if ($source->getSmallImage() == 'no_selection') {
+                    $value = $mediaDir. 'catalog/product' . $source->getThumbnail();
+                } elseif ($source->getThumbnail() == 'no_selection') {
+                    $value = $mediaDir. 'catalog/product' . $source->getImage();
+                }
+             }
             //Set the child item price of bundle products to 0
             if ($isBundle == 1 && ($name == 'UnitPrice' || $name == 'Weight')) {
                 $value = 0;

@@ -136,6 +136,13 @@ class Auctane_Api_Model_Server_Adapter
         if (is_numeric($code) && strlen((int) $code) === 3) {
             header(sprintf('%s %03d Fault', $_SERVER['SERVER_PROTOCOL'], $code));
         }
+        $errMessage = 'Authorize.Net CIM Gateway: The original transaction was not issued 
+        for this shipping address. (E00051)';
+
+        if ($message == $errMessage) {
+            header('Web Exception', true, 400);
+        }
+
         header('Content-Type: text/xml; charset=UTF-8');
         die('<?xml version="1.0" encoding="UTF-8"?>
             <fault>
