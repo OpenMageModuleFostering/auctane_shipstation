@@ -20,6 +20,11 @@
 class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
 {
     /**
+     * Exclude product type
+     */
+    const TYPE_CONFIGURABLE = 'configurable';
+    
+    /**
      * Write a source object to an XML stream, mapping fields via a fieldset.
      * Fieldsets are nodes in config.xml
      * 
@@ -114,12 +119,12 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
      */
     public function getIncludedProductTypes()
     {
-        static $types;
-        if (!isset($types)) {
-            $types = Mage::getModel('catalog/product_type')->getTypes();
-            if (isset($type["auctane_exclude"]))
-                $types = array_filter($types, create_function('$type', 'return !$type["auctane_exclude"];'));
-        }
+        $types = Mage::getModel('catalog/product_type')->getTypes();
+        
+        //Remove the configurable product from the list
+        if(array_key_exists(self::TYPE_CONFIGURABLE, $types)) {
+            unset($types[self::TYPE_CONFIGURABLE]);
+        }                
         return array_keys($types);
     }
 
@@ -131,13 +136,12 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
      */
     public function isExcludedProductType($type)
     {
-        static $types;
-        if (!isset($types)) {
-            $types = Mage::getModel('catalog/product_type')->getTypes();
-            if (isset($type["auctane_exclude"]))
-                $types = array_filter($types, create_function('$type', 'return (bool) $type["auctane_exclude"];'));
+        //Check the configurable product type
+        if($type == self::TYPE_CONFIGURABLE) {
+            return 1;
+        } else {
+            return 0;
         }
-        return isset($types[$type]);
     }
 
     /**
