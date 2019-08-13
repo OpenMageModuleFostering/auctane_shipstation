@@ -250,8 +250,8 @@ class Auctane_Api_Model_Action_Export
         $xml->startElement('Item');
 
         $helper = Mage::helper('auctaneapi');
-        $storeId = Mage::helper('auctaneapi')->getExportPriceType($item->getOrder()->getStoreId());
-        if ($storeId == Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {
+        $priceType = Mage::helper('auctaneapi')->getExportPriceType($item->getOrder()->getStoreId());
+        if ($priceType == Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {
             $helper->fieldsetToXml('base_sales_order_item', $item, $xml, $isBundle);
         } else {
             $helper->fieldsetToXml('sales_order_item', $item, $xml, $isBundle);

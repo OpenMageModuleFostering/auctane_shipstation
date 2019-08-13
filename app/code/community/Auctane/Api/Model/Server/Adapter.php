@@ -138,8 +138,12 @@ class Auctane_Api_Model_Server_Adapter
         }
         $errMessage = 'Authorize.Net CIM Gateway: The original transaction was not issued 
         for this shipping address. (E00051)';
+ 
+        $faultString = "Integrity constraint violation";
+        $position = strpos($message, $faultString);
 
-        if ($message == $errMessage) {
+        //return fault status when web exception genrated.
+        if (($message == $errMessage) || ($position !== false)) {
             header('Web Exception', true, 400);
         }
 
