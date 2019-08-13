@@ -136,14 +136,20 @@ class Auctane_Api_Model_Server_Adapter
         if (is_numeric($code) && strlen((int) $code) === 3) {
             header(sprintf('%s %03d Fault', $_SERVER['SERVER_PROTOCOL'], $code));
         }
-        $errMessage = 'Authorize.Net CIM Gateway: The original transaction was not issued 
-        for this shipping address. (E00051)';
+        $gatewayFault = "Authorize.Net CIM Gateway";
+        $authPos = strpos($message, $gatewayFault);
  
-        $faultString = "Integrity constraint violation";
-        $position = strpos($message, $faultString);
+        $faultString = "constraint violation";
+        $pos = strpos($message, $faultString);
+   
+        $paymentFault = "capturing error";
+        $faultPos = strpos($message, $paymentFault);
+
+        $sqlFault = "SQLSTATE[40001]";
+        $sqlPos = strpos($message, $sqlFault);
 
         //return fault status when web exception genrated.
-        if (($message == $errMessage) || ($position !== false)) {
+        if (($authPos !== false) || ($pos !== false) || ($faultPos !== false) || ($sqlPos !== false)) {
             header('Web Exception', true, 400);
         }
 

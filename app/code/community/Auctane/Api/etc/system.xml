@@ -69,6 +69,7 @@
                             <show_in_website>1</show_in_website>
                             <sort_order>10</sort_order>
                             <show_in_store>1</show_in_store>
+                            <can_be_empty>1</can_be_empty>
                         </customattributes>
                         <import_child_products translate="label">
                             <label>Import Child Products</label>

@@ -30,7 +30,6 @@ class Auctane_Api_Model_Action_Shipnotify
     {
         // Raw XML is POSTed to this stream
         $xml = simplexml_load_file('php://input');
-
         // load some objects
         $order = $this->_getOrder($xml->OrderNumber);
         $qtys = $this->_getOrderItemQtys($xml->Items, $order);

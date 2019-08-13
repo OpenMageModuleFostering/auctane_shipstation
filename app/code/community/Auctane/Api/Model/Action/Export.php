@@ -171,7 +171,7 @@ class Auctane_Api_Model_Action_Export
         }
         
         $intImportDiscount = Mage::getStoreConfig('auctaneapi/general/import_discounts');
-        if ($intImportDiscount == 1) { // Import Discount is true
+        if ($intImportDiscount != 2) { // Import Discount is true
             $discounts = array();
             if ($order->getData('auctaneapi_discounts')) {
                 $discounts = unserialize($order->getData('auctaneapi_discounts'));
@@ -265,22 +265,6 @@ class Auctane_Api_Model_Action_Export
 
         $xml->startElement('Options');
         $this->_productAttribute($product, $xml, $storeId);
-        // items may have several custom options chosen by customer
-        foreach ((array) $item->getProductOptionByCode('options') as $option) {
-            $this->_writeOrderItemOption($option, $xml, $storeId);
-        }
-        $buyRequest = $item->getProductOptionByCode('info_buyRequest');
-        if ($buyRequest && isset($buyRequest['super_attribute'])) {
-            // super_attribute is non-null and non-empty, there must be a Configurable involved
-            $parentItem = $this->_getOrderItemParent($item);
-            /* export configurable custom options as they are stored in parent */
-            foreach ((array) $parentItem->getProductOptionByCode('options') as $option) {
-                $this->_writeOrderItemOption($option, $xml, $storeId);
-            }
-            foreach ((array) $parentItem->getProductOptionByCode('attributes_info') as $option) {
-                $this->_writeOrderItemOption($option, $xml, $storeId);
-            }
-        }
         $xml->endElement(); // Options
         $xml->endElement(); // Item
     }
@@ -314,12 +298,14 @@ class Auctane_Api_Model_Action_Export
                 } else {
                     $value = $product->getDataUsingMethod($attr->getName());
                 }
-                // fake an item option
-                $option = array(
-                    'value' => $value,
-                    'label' => $attr->getFrontendLabel()
-                );
-                $this->_writeOrderItemOption($option, $xml, $storeId);
+                if ($value) {
+                    //item option
+                    $option = array(
+                        'value' => $value,
+                        'label' => $attr->getFrontendLabel()
+                    );
+                    $this->_writeOrderItemOption($option, $xml, $storeId);
+                }
             }
         }
     }
