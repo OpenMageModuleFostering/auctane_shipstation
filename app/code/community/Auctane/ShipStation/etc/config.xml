@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+ * ShipStation
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@auctane.com so we can send you a copy immediately.
+ *
+ * @category   Shipping
+ * @package    Auctane_ShipStation
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ -->
+<config>
+	<modules>
+		<Auctane_ShipStation>
+			<version>1.3.10</version>
+		</Auctane_ShipStation>
+	</modules>
+
+	<default>
+		<auctane>
+			<shipstation>
+				<authenticate_url><![CDATA[https://app.shipstation.com/Marketplace/MagentoAuthenticate]]></authenticate_url>
+			</shipstation>
+		</auctane>
+	</default>
+
+	<global>
+		<blocks>
+			<auctaneshipstation>
+				<class>Auctane_ShipStation_Block</class>
+			</auctaneshipstation>
+		</blocks>
+		<helpers>
+			<auctaneshipstation>
+				<class>Auctane_ShipStation_Helper</class>
+			</auctaneshipstation>
+		</helpers>
+		<models>
+			<auctaneshipstation>
+				<class>Auctane_ShipStation_Model</class>
+				<resourceModel>auctaneshipstation_mysql4</resourceModel>
+			</auctaneshipstation>
+			<auctaneshipstation_mysql4>
+				<class>Auctane_ShipStation_Model_Mysql4</class>
+				<entities>
+					<user><table>auctaneshipstation_user</table></user>
+				</entities>
+			</auctaneshipstation_mysql4>
+		</models>
+		<resources>
+			<auctaneshipstation_setup>
+				<setup>
+					<module>Auctane_ShipStation</module>
+					<!-- Not specifying a class yet because only flat tables are used -->
+				</setup>
+			</auctaneshipstation_setup>
+			<!-- Adapters don't need to be specified in modern versions of Magento, but included here for compatibility -->
+			<auctaneshipstation_write>
+				<connection><use>core_write</use></connection>
+			</auctaneshipstation_write>
+			<auctaneshipstation_read>
+				<connection><use>core_read</use></connection>
+			</auctaneshipstation_read>
+		</resources>
+	</global>
+
+	<admin>
+		<routers>
+			<adminhtml>
+				<args>
+					<modules>
+						<auctaneshipstation before="Mage_Adminhtml">Auctane_ShipStation_Adminhtml</auctaneshipstation>
+					</modules>
+				</args>
+			</adminhtml>
+		</routers>
+	</admin>
+
+	<adminhtml>
+		<layout>
+			<updates>
+				<auctaneshipstation>
+					<file>auctaneshipstation.xml</file>
+				</auctaneshipstation>
+			</updates>
+		</layout>
+		<translate>
+			<modules>
+				<auctaneshipstation>
+					<files>
+						<default>Auctane_ShipStation.csv</default>
+					</files>
+				</auctaneshipstation>
+			</modules>
+		</translate>
+		<events>
+			<core_block_abstract_to_html_after>
+				<observers>
+					<auctaneshipstation_dashboard_sales_after>
+						<class>auctaneshipstation/observer</class>
+						<method>appendDashboardSalesHtml</method>
+						<type>singleton</type>
+					</auctaneshipstation_dashboard_sales_after>
+				</observers>
+			</core_block_abstract_to_html_after>
+		</events>
+	</adminhtml>
+</config>

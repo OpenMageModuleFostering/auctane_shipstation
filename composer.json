@@ -1,0 +1,16 @@
+{
+    "name": "OpenMageModuleFostering/Auctane_ShipStation",
+    "type": "magento-module",
+    "license": "OSL-v3.0",
+    "homepage": "",
+    "description": "ShipStation is a web-based shipping solution that is integrated with the Magento API for retrieving order information and updating shipping details.",
+    "authors": [
+    {
+        "name": "clockworkgeek",
+        "email": "nonproffessional@clockworkgeek.com"
+    }
+],
+    "suggest": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}

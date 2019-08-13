@@ -1,0 +1,31 @@
+<?php 
+/**
+ * ShipStation
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@auctane.com so we can send you a copy immediately.
+ *
+ * @category   Shipping
+ * @package    Auctane_ShipStation
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+?>
+<?php /* @var $this Mage_Adminhtml_Block_Template */ ?>
+<img alt="<?php echo $this->__('ShipStation') ?>" src="<?php echo $this->getSkinUrl('images/shipstation.png') ?>">
+<p><?php echo $this->__('Click the button below to launch ShipStation!') ?></p>
+<?php
+$form = $this->getLayout()->getBlock('launchform');
+$form->setLabel($this->__('Launch ShipStation'));
+echo $form->toHtml();
+?>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><a href="<?php echo $this->getUrl('*/shipstation/setup') ?>"><?php echo $this->__('Click here to set a new ShipStation account') ?></a></p>

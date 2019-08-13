@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ * ShipStation
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@auctane.com so we can send you a copy immediately.
+ *
+ * @category   Shipping
+ * @package    Auctane_ShipStation
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ -->
+<layout>
+
+	<adminhtml_dashboard_index>
+		<reference name="dashboard">
+			<block type="auctaneshipstation/adminhtml_pending" name="pendingorders" template="auctane/shipstation/pending.phtml">
+				<block type="adminhtml/template" name="launchform" template="auctane/shipstation/launchform.phtml" />
+			</block>
+		</reference>
+	</adminhtml_dashboard_index>
+
+	<adminhtml_shipstation_index>
+		<reference name="content">
+			<block type="adminhtml/template" name="launch" template="auctane/shipstation/launch.phtml">
+				<block type="adminhtml/template" name="launchform" template="auctane/shipstation/launchform.phtml" />
+			</block>
+		</reference>
+	</adminhtml_shipstation_index>
+
+	<adminhtml_shipstation_setup>
+		<reference name="content">
+			<block type="adminhtml/template" name="container" template="auctane/shipstation/container.phtml">
+				<block type="auctaneshipstation/adminhtml_linkup" name="linkup" template="auctane/shipstation/linkup.phtml" />
+			</block>
+		</reference>
+	</adminhtml_shipstation_setup>
+
+</layout>

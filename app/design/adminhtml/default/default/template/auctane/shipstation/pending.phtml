@@ -1,0 +1,41 @@
+<?php 
+/**
+ * ShipStation
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@auctane.com so we can send you a copy immediately.
+ *
+ * @category   Shipping
+ * @package    Auctane_ShipStation
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+?>
+<?php /* @var $this Mage_Adminhtml_Block_Template */ ?>
+<div class="entry-edit">
+	<div class="entry-edit-head"><h4><?php echo $this->__('Orders Awaiting Shipment')  ?></h4></div>
+	<fieldset>
+		<table style="width: 100%">
+		<col width="50%">
+		<col width="50%">
+		<tr>
+			<td class="v-middle">
+				<?php if (($numOrders = $this->getOrders()->getSize()) == 1): ?>
+				<p><?php echo $this->__('%d order awaiting shipment', $numOrders)  ?></p>
+				<?php elseif ($numOrders > 1): ?>
+				<p><?php echo $this->__('%d orders awaiting shipment', $numOrders)  ?></p>
+				<?php endif; ?>
+				<?php echo $this->getLayout()->getBlock('launchform')->setLabel($this->__('Ship Now'))->toHtml() ?>
+			</td>
+			<td class="v-middle">
+				<img alt="<?php echo $this->__('ShipStation') ?>" src="<?php echo $this->getSkinUrl('images/shipstation.png') ?>">
+			</td>
+		</tr></table>
+	</fieldset>
+</div>

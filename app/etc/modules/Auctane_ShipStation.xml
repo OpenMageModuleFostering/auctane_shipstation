@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<config>
+    <modules>
+        <Auctane_ShipStation>
+            <active>false</active>
+            <codePool>community</codePool>
+        </Auctane_ShipStation>
+    </modules>
+</config>
