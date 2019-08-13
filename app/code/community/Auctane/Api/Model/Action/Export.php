@@ -1,392 +1,274 @@
 <?php
-/**
- * ShipStation
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@auctane.com so we can send you a copy immediately.
- *
- * @category    Shipping
- * @package     Auctane_Api
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
- */
 
-class Auctane_Api_Model_Action_Export
-{
-    /**
-     * Perform an export according to the given request.
-     *
-     * @param Mage_Core_Controller_Request_Http $request
-     * @param Mage_Core_Controller_Response_Http $response
-     * @throws Exception
-     */
-    public function process(Mage_Core_Controller_Request_Http $request, Mage_Core_Controller_Response_Http $response)
-    {
-        // In case store is part of URL path use it to choose config.
-        $store = $request->get('store');
-        if ($store)
-            $store = Mage::app()->getStore($store);
+class Auctane_Api_Model_Action_Export {
 
-        $apiConfigCharset = Mage::getStoreConfig("api/config/charset", $store);
+	/**
+	 * Perform an export according to the given request.
+	 *
+	 * @param Mage_Core_Controller_Request_Http $request
+	 * @param Mage_Core_Controller_Response_Http $response
+	 * @throws Exception
+	 */
+	public function process(Mage_Core_Controller_Request_Http $request,
+		Mage_Core_Controller_Response_Http $response)
+	{
+		// In case store is part of URL path use it to choose config.
+		$store = $request->get('store');
+		if ($store) $store = Mage::app()->getStore($store);
 
-        $startDate = strtotime(urldecode($request->getParam('start_date')));
-        $endDate = strtotime(urldecode($request->getParam('end_date')));
-        if (!$startDate || !$endDate)
-            throw new Exception('Start and end dates are required', 400);
+		$apiConfigCharset = Mage::getStoreConfig("api/config/charset", $store);
 
-        $page = (int) $request->getParam('page');
+		$start_date = strtotime($request->getParam('start_date'));
+		$end_date = strtotime($request->getParam('end_date'));
+		if (!$start_date || !$end_date) throw new Exception('Start and end dates are required', 400);
 
-        /* @var $orders Mage_Sales_Model_Mysql4_Order_Collection */
-        $orders = Mage::getResourceModel('sales/order_collection');
-        // might use 'created_at' attribute instead
-        $from = date('Y-m-d H:i:s', $startDate);
-        $end = date('Y-m-d H:i:s', $endDate);
-        $orders->addAttributeToFilter('updated_at', array('from' => $from,'to' => $end));
-        if ($store)
-            $orders->addAttributeToFilter('store_id', $store->getId());
-        if ($page > 0)
-            $orders->setPage($page, $this->_getExportPageSize());
-        $xml = new XMLWriter;
-        $xml->openMemory();
-        $xml->startDocument('1.0', $apiConfigCharset);
-        $this->_writeOrders($orders, $xml, $store ? $store->getId() : 0);
-        $xml->endDocument();
+		$page = (int) $request->getParam('page');
 
-        $response->clearHeaders()
-                ->setHeader('Content-Type', 'text/xml; charset=' . $apiConfigCharset)
-                ->setBody($xml->outputMemory(true));
-    }
+		/* @var $orders Mage_Sales_Model_Mysql4_Order_Collection */
+		$orders = Mage::getResourceModel('sales/order_collection');
+		// might use 'created_at' attribute instead
+		$orders->addAttributeToFilter('updated_at',
+			array(
+				'from' => date('Y-m-d H:i:s', $start_date),
+				'to' => date('Y-m-d H:i:s', $end_date)
+			));
+		if ($store) $orders->addAttributeToFilter('store_id', $store->getId());
+		if ($page > 0) $orders->setPage($page, $this->_getExportPageSize());
 
-     /**
-     * get the size of page
-     */
-    protected function _getExportPageSize()
-    {
-        return (int) Mage::getStoreConfig('auctaneapi/config/exportPageSize');
-    }
+		$xml = new XMLWriter;
+		$xml->openMemory();
+		$xml->startDocument('1.0', $apiConfigCharset);
+		$this->_writeOrders($orders, $xml, $store ? $store->getId() : 0);
+		$xml->endDocument();
 
-    /**
-     * Write the ordes in xml file
-     *
-     * @param Varien_Data_Collection $orders
-     * @param XMLWriter $xml
-     * @param integer $storeId
-     */
-    protected function _writeOrders(Varien_Data_Collection $orders, XMLWriter $xml, $storeId = null)
-    {
-        $xml->startElement('Orders');
-        $xml->writeAttribute('pages', $orders->getLastPageNumber());
-        foreach ($orders as $order) {
-                $this->_writeOrder($order, $xml, $storeId);
-        }
-        $xml->startElement('Query');
-        $xml->writeCdata($orders->getSelectSql());
-        $xml->endElement(); // Query
-        $xml->startElement('Version');
-        $xml->writeCdata('Magento ' . Mage::getVersion());
-        $xml->endElement(); // Version
-        $xml->startElement('Extensions');
-        $xml->writeCdata(Mage::helper('auctaneapi')->getModuleList());
-        $xml->endElement(); // Extensions
-        $xml->endElement(); // Orders
-    }
+		$response->clearHeaders()
+			->setHeader('Content-Type','text/xml; charset='.$apiConfigCharset)
+			->setBody($xml->outputMemory(true));
+	}
 
-    /**
-     * Write the order in xml file
-     *
-     * @param Mage_Sales_Model_Order $order
-     * @param XMLWriter $xml
-     * @param integer $storeId
-     */
-    protected function _writeOrder(Mage_Sales_Model_Order $order, XMLWriter $xml, $storeId = null)
-    {
-        $history = '';
-        /* @var $status Mage_Sales_Model_Order_Status */
-        foreach ($order->getStatusHistoryCollection() as $status) {
-            if ($status->getComment()) {
-                $history .= $status->getCreatedAt() . PHP_EOL;
-                $history .= $status->getComment() . PHP_EOL . PHP_EOL;
-            }
-        }
-        $history = trim($history);
-        if ($history) {
-            $order->setStatusHistoryText($history);
-        }
-        /* @var $gift Mage_GiftMessage_Model_Message */
-        $gift = Mage::helper('giftmessage/message')->getGiftMessage($order->getGiftMessageId());
-        $order->setGift($gift->isObjectNew() ? 'false' : 'true');
-        
-        $sender = $gift->getSender();
-        $recipient = $gift->getRecipient();
-        
-        if (!$gift->isObjectNew()) {
-            $message = sprintf("From: %s\nTo: %s\nMessage: %s", $sender, $recipient, $gift->getMessage());
-            $order->setGiftMessage($message);
-        }
-        $helper = Mage::helper('auctaneapi');
-        $xml->startElement('Order');
-        $price = Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE;
-        if ($helper->getExportPriceType($order->getStoreId()) == $price) {
-            $helper->fieldsetToXml('base_sales_order', $order, $xml);
-        } else {
-            $helper->fieldsetToXml('sales_order', $order, $xml);
-        }
-        $xml->startElement('Customer');
-        $xml->startElement('CustomerCode');
-        $xml->writeCdata($order->getCustomerEmail());
-        $xml->endElement(); // CustomerCode
-        $xml->startElement('BillTo');
-        $helper->fieldsetToXml('sales_order_billing_address', $order->getBillingAddress(), $xml);
-        $xml->endElement(); // BillTo
-        $xml->startElement('ShipTo');
-        $helper->fieldsetToXml('sales_order_shipping_address', $order->getShippingAddress(), $xml);
-        $xml->endElement(); // ShipTo
-        $xml->endElement(); // Customer
-        /** add purchase order nubmer */
-        Mage::helper('auctaneapi')->writePoNumber($order, $xml);
+	protected function _getExportPageSize()
+	{
+		return (int) Mage::getStoreConfig('auctaneapi/config/exportPageSize');
+	}
 
-        $xml->startElement('Items');
-        //Check for the bundle child product to import
-        $intImportChildProducts = Mage::getStoreConfig('auctaneapi/general/import_child_products');
-        
-        /* @var $item Mage_Sales_Model_Order_Item */
-        foreach ($order->getItemsCollection($helper->getIncludedProductTypes()) as $item) {
-            $isBundle = 0;
-            //Check for the parent bundle item type
-            $parentItem = $this->_getOrderItemParent($item);
-            if ($parentItem->getProductType() === 'bundle') {
-                if ($intImportChildProducts == 2) {
-                    continue;
-                } else {
-                    $isBundle = 1;
-                }
-            }
-	        if ($item->getHasChildren() && $item->getParentItemId()) {
-	    	    continue;
-            }	
-            $this->_orderItem($item, $xml, $storeId, $isBundle);
-        }
-        
-        $intImportDiscount = Mage::getStoreConfig('auctaneapi/general/import_discounts');
-        $fltOrderDiscount = $order->getDiscountAmount();
-        if ($intImportDiscount != 2 && $fltOrderDiscount != 0.0000) {
-        // Import Discount is true
-            $discounts = array();
-            $processed = array();
-            if ($order->getData('auctaneapi_discounts')) {
-                $discounts = unserialize($order->getData('auctaneapi_discounts'));
-                if (is_array($discounts)) {
-                    $aggregated = array();
-                    foreach ($discounts as $key => $discount) {
-                        $keyData = explode('-', $key);
-                        //check the duplication of rule for each item.
-                        $itemRule = $keyData[0].'-'.$keyData[1];
-                        if(in_array($itemRule, $processed)) {
-                            continue;
-                        } else {
-                            $processed[] = $itemRule;
-                        }
-                        if (isset($aggregated[$keyData[0]])) {
-                            $aggregated[$keyData[0]] += $discount;
-                        } else {
-                            $aggregated[$keyData[0]] = $discount;
-                        }
-                    }
-                    Mage::helper('auctaneapi')->writeDiscountsInfo($aggregated, $xml);
-                }
-            }
-        }
-        $xml->endElement(); // Items
-        $xml->endElement(); // Order
-    }
+	protected function _writeOrders(Varien_Data_Collection $orders, XMLWriter $xml, $storeId = null)
+	{
+		$xml->startElement('Orders');
+		$xml->writeAttribute('pages', $orders->getLastPageNumber());
+		foreach ($orders as $order) {
+			$this->_writeOrder($order, $xml, $storeId);
+		}
+		$xml->startElement('Query');
+		$xml->writeCdata($orders->getSelectSql());
+		$xml->endElement(); // Query
 
-    /**
-     * Write the order item in xml file
-     *
-     * @param Mage_Sales_Model_Order_Item $item
-     * @param XMLWriter $xml
-     * @param integer $storeId
-     * @param boolean $isBundle
-     */
-    protected function _orderItem(Mage_Sales_Model_Order_Item $item, XMLWriter $xml, $storeId = null, $isBundle = 0)
-    {
-        // inherit some attributes from parent order item
-        if ($item->getParentItemId() && !$item->getParentItem()) {
-            $item->setParentItem(Mage::getModel('sales/order_item')->load($item->getParentItemId()));
-        }
-        $exclude = Mage::helper('auctaneapi')->isExcludedProductType($item->getParentItem()->getProductType());
-        // only inherit if parent has been hidden
-        if ($item->getParentItem() && ($item->getPrice() == 0.000) && $exclude) {
-            //set the store price of item from parent item
-            $item->setPrice($item->getParentItem()->getPrice());
-            //set the base price of item from parent item
-            $item->setBasePrice($item->getParentItem()->getBasePrice());
-        }
+		$xml->startElement('Version');
+		$xml->writeCdata('Magento ' . Mage::getVersion());
+		$xml->endElement(); // Version
 
-        if (!$item->getGiftMessageId() && $item->getParentItem()) {
-             $giftId = $item->getParentItem()->getGiftMessageId();
-        } else {
-            $giftId = $item->getGiftMessageId();
-        }
-        /* @var $gift Mage_GiftMessage_Model_Message */
-        $gift = Mage::helper('giftmessage/message')->getGiftMessage($giftId);
-        $item->setGift($gift->isObjectNew() ? 'false' : 'true');
-        $sender = $gift->getSender();
-        $recipient = $gift->getRecipient();
-        if (!$gift->isObjectNew()) {
-            $message = sprintf("From: %s\nTo: %s\nMessage: %s", $sender, $recipient, $gift->getMessage());
-            $item->setGiftMessage($message);
-        }
+		$xml->startElement('Extensions');
+		$xml->writeCdata(Mage::helper('auctaneapi')->getModuleList());
+		$xml->endElement(); // Extensions
 
-       /* @var $product Mage_Catalog_Model_Product */
-        $product = Mage::getModel('catalog/product')
-                ->setStoreId($storeId)
-                ->load($item->getProductId());
-        
-        // inherit some attributes from parent product item
-        if (($parentProduct = $this->_getOrderItemParentProduct($item, $storeId))) {
-            if (!$product->getImage() || ($product->getImage() == 'no_selection'))
-                $product->setImage($parentProduct->getImage());
-            if (!$product->getSmallImage() || ($product->getSmallImage() == 'no_selection'))
-                $product->setSmallImage($parentProduct->getSmallImage());
-            if (!$product->getThumbnail() || ($product->getThumbnail() == 'no_selection'))
-                $product->setThumbnail($parentProduct->getThumbnail());
-        }
+		$xml->endElement(); // Orders
+	}
 
-        $xml->startElement('Item');
+	protected function _writeOrder(Mage_Sales_Model_Order $order, XMLWriter $xml, $storeId = null)
+	{
+		$history = '';
+		/* @var $status Mage_Sales_Model_Order_Status */
+		foreach ($order->getStatusHistoryCollection() as $status) {
+			if ($status->getComment()) {
+				$history .= $status->getCreatedAt() . PHP_EOL;
+				$history .= $status->getComment() . PHP_EOL . PHP_EOL;
+			}
+		}
+		$history = trim($history);
+		if ($history) {
+			$order->setStatusHistoryText($history);
+		}
 
-        $helper = Mage::helper('auctaneapi');
-        $priceType = Mage::helper('auctaneapi')->getExportPriceType($item->getOrder()->getStoreId());
-        if ($priceType == Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {
-            $helper->fieldsetToXml('base_sales_order_item', $item, $xml, $isBundle);
-        } else {
-            $helper->fieldsetToXml('sales_order_item', $item, $xml, $isBundle);
-        }
+		/* @var $gift Mage_GiftMessage_Model_Message */
+		$gift = Mage::helper('giftmessage/message')->getGiftMessage($order->getGiftMessageId());
+		$order->setGift($gift->isObjectNew() ? 'false' : 'true');
+		if (!$gift->isObjectNew()) {
+			$order->setGiftMessage(sprintf("From: %s\nTo: %s\nMessage: %s",
+				$gift->getSender(), $gift->getRecipient(), $gift->getMessage()));
+		}
 
-        /* using emulation so that product images come from the correct store */
-        $appEmulation = Mage::getSingleton('core/app_emulation');
-        $initialEnvironmentInfo = $appEmulation->startEnvironmentEmulation($product->getStoreId());
-        Mage::helper('auctaneapi')->fieldsetToXml('sales_order_item_product', $product, $xml);
-        $appEmulation->stopEnvironmentEmulation($initialEnvironmentInfo);
+		$helper = Mage::helper('auctaneapi');
 
-        $xml->startElement('Options');
-        $this->_productAttribute($product, $xml, $storeId);
-	// items may have several custom options chosen by customer
-        foreach ((array) $item->getProductOptionByCode('options') as $option) {
-            $this->_writeOrderItemOption($option, $xml, $storeId);
-        }
-        $buyRequest = $item->getProductOptionByCode('info_buyRequest');
-        if ($buyRequest && isset($buyRequest['super_attribute'])) {
-            // super_attribute is non-null and non-empty, there must be a Configurable involved
-            $parentItem = $this->_getOrderItemParent($item);
-            /* export configurable custom options as they are stored in parent */
-            foreach ((array) $parentItem->getProductOptionByCode('options') as $option) {
-                $this->_writeOrderItemOption($option, $xml, $storeId);
-            }
-            /*foreach ((array) $parentItem->getProductOptionByCode('attributes_info') as $option) {
-                $this->_writeOrderItemOption($option, $xml, $storeId);
-            }*/
-        }
-        $xml->endElement(); // Options
-        $xml->endElement(); // Item
-    }
+		$xml->startElement('Order');
+		$helper->fieldsetToXml('sales_order', $order, $xml);
 
-     /**
-     * Write the product attribute used in order
-     *
-     * @param Mage_Catalog_Model_Product $product
-     * @param XMLWriter $xml
-     * @param integer $storeId
-     */
-    protected function _productAttribute(Mage_Catalog_Model_Product $product, XMLWriter $xml, $storeId = null)
-    {
-        // custom attributes are specified in Admin > Configuration > Sales > Auctane Shipstation API
-        // static because attributes can be cached, they do not change during a request
-        static $attrs = null;
-        if (is_null($attrs)) {
-            $attrs = Mage::getResourceModel('eav/entity_attribute_collection');
-            $attrIds = explode(',', Mage::getStoreConfig('auctaneapi/general/customattributes', $storeId));
-            $attrs->addFieldToFilter('attribute_id', $attrIds);
-        }
+		$xml->startElement('Customer');
+		$xml->startElement('CustomerCode');
+		$xml->writeCdata($order->getCustomerEmail());
+		$xml->endElement(); // CustomerCode
 
-        /* @var $attr Mage_Eav_Model_Entity_Attribute */
-        foreach ($attrs as $attr) {
-            if ($product->hasData($attr->getName())) {
-                // if an attribute has options/labels
-                if (in_array($attr->getFrontendInput(), array('select', 'multiselect'))) {
-                    $value = $product->getAttributeText($attr->getName());
-                    if (is_array($value))
-                        $value = implode(',', $value);
-                } else {
-                    $value = $product->getDataUsingMethod($attr->getName());
-                }
-                if ($value) {
-                    //item option
-                    $option = array(
-                        'value' => $value,
-                        'label' => $attr->getFrontendLabel()
-                    );
-                    $this->_writeOrderItemOption($option, $xml, $storeId);
-                }
-            }
-        }
-    }
+		$xml->startElement('BillTo');
+		$helper->fieldsetToXml('sales_order_billing_address',
+			$order->getBillingAddress(), $xml);
+		$xml->endElement(); // BillTo
 
-    /**
-     * Write the options used in order
-     *
-     * @param string $option
-     * @param XMLWriter $xml
-     */
-    protected function _writeOrderItemOption($option, XMLWriter $xml)
-    {
-        $xml->startElement('Option');
-        Mage::helper('auctaneapi')->fieldsetToXml('sales_order_item_option', $option, $xml);
-        $xml->endElement(); // Option
-    }
+		$xml->startElement('ShipTo');
+		$helper->fieldsetToXml('sales_order_shipping_address',
+			$order->getShippingAddress(), $xml);
+		$xml->endElement(); // ShipTo
 
-    /**
-     * Safe way to lookup parent order items.
-     *
-     * @param Mage_Sales_Model_Order_Item $item
-     * @return Mage_Sales_Model_Order_Item
-     */
-    protected function _getOrderItemParent(Mage_Sales_Model_Order_Item $item)
-    {
-        if ($item->getParentItem()) {
-            return $item->getParentItem();
-        }
+		$xml->endElement(); // Customer
 
-        $parentItem = Mage::getModel('sales/order_item')
-                ->load($item->getParentItemId());
-        $item->setParentItem($parentItem);
-        return $parentItem;
-    }
+		$xml->startElement('Items');
+		/* @var $item Mage_Sales_Model_Order_Item */
+		foreach ($order->getItemsCollection($helper->getIncludedProductTypes()) as $item) {
+			$this->_writeOrderItem($item, $xml, $storeId);
+		}
+		$xml->endElement(); // Items
 
-    /**
-     * Get the parent product of current item in a order
-     * 
-     * @param Mage_Sales_Model_Order_Item $item
-     * @param mixed $storeId
-     * @return Mage_Catalog_Model_Product
-     */
-    protected function _getOrderItemParentProduct(Mage_Sales_Model_Order_Item $item, $storeId = null)
-    {
-        if ($item->getParentItemId()) {
-            // cannot use getParentItem() because we stripped parents from the order
-            $parentItem = $this->_getOrderItemParent($item);
-            // initialise with store so that images are correct
-            return Mage::getModel('catalog/product')
-                            ->setStoreId($storeId)
-                            ->load($parentItem->getProductId());
-        }
-        return null;
-    }
+		$xml->endElement(); // Order
+	}
+
+	protected function _writeOrderItem(Mage_Sales_Model_Order_Item $item, XMLWriter $xml, $storeId = null)
+	{
+		// inherit some attributes from parent order item
+		if ($item->getParentItemId() && !$item->getParentItem()) {
+			$item->setParentItem(Mage::getModel('sales/order_item')->load($item->getParentItemId()));
+		}
+		// only inherit if parent has been hidden
+		if ($item->getParentItem() && ($item->getPrice() == 0.000)
+		 && (Mage::helper('auctaneapi')->isExcludedProductType($item->getParentItem()->getProductType())))
+		{
+			$item->setPrice($item->getParentItem()->getPrice());
+		}
+
+		/* @var $gift Mage_GiftMessage_Model_Message */
+		$gift = Mage::helper('giftmessage/message')->getGiftMessage(
+			!$item->getGiftMessageId() && $item->getParentItem()
+			? $item->getParentItem()->getGiftMessageId()
+			: $item->getGiftMessageId());
+		$item->setGift($gift->isObjectNew() ? 'false' : 'true');
+		if (!$gift->isObjectNew()) {
+			$item->setGiftMessage(sprintf("From: %s\nTo: %s\nMessage: %s",
+				$gift->getSender(), $gift->getRecipient(), $gift->getMessage()));
+		}
+
+		/* @var $product Mage_Catalog_Model_Product */
+		$product = Mage::getModel('catalog/product')
+			->setStoreId($storeId)
+			->load($item->getProductId());
+		// inherit some attributes from parent product item
+		if (($parentProduct = $this->_getOrderItemParentProduct($item, $storeId))) {
+			if (!$product->getImage() || ($product->getImage() == 'no_selection'))
+				$product->setImage($parentProduct->getImage());
+			if (!$product->getSmallImage() || ($product->getSmallImage() == 'no_selection'))
+				$product->setSmallImage($parentProduct->getSmallImage());
+			if (!$product->getThumbnail() || ($product->getThumbnail() == 'no_selection'))
+				$product->setThumbnail($parentProduct->getThumbnail());
+		}
+
+		$xml->startElement('Item');
+		Mage::helper('auctaneapi')->fieldsetToXml('sales_order_item', $item, $xml);
+
+		/* using emulation so that product images come from the correct store */
+		$appEmulation = Mage::getSingleton('core/app_emulation');
+		$initialEnvironmentInfo = $appEmulation->startEnvironmentEmulation( $product->getStoreId() );
+		Mage::helper('auctaneapi')->fieldsetToXml('sales_order_item_product',
+			$product, $xml);
+		$appEmulation->stopEnvironmentEmulation( $initialEnvironmentInfo );
+
+		$xml->startElement('Options');
+		$this->_writeOrderProductAttribute($product, $xml, $storeId);
+		// items may have several custom options chosen by customer
+		foreach ((array) $item->getProductOptionByCode('options') as $option) {
+			$this->_writeOrderItemOption($option, $xml, $storeId);
+		}
+		$buyRequest = $item->getProductOptionByCode('info_buyRequest');
+		if ($buyRequest && @$buyRequest['super_attribute']) {
+			// super_attribute is non-null and non-empty, there must be a Configurable involved
+			$parentItem = $this->_getOrderItemParent($item);
+			foreach ((array) $parentItem->getProductOptionByCode('attributes_info') as $option) {
+				$this->_writeOrderItemOption($option, $xml, $storeId);
+			}
+		}
+		$xml->endElement(); // Options
+
+		$xml->endElement(); // Item
+	}
+
+	protected function _writeOrderProductAttribute(Mage_Catalog_Model_Product $product, XMLWriter $xml, $storeId = null)
+	{
+		// custom attributes are specified in Admin > Configuration > Sales > Auctane Shipstation API
+		// static because attributes can be cached, they do not change during a request
+		static $attrs = null;
+		if (is_null($attrs)) {
+			$attrs = Mage::getResourceModel('eav/entity_attribute_collection');
+			$attrIds = explode(',', Mage::getStoreConfig('sales/auctaneapi/customattributes', $storeId));
+			$attrs->addFieldToFilter('attribute_id', $attrIds);
+		}
+
+		/* @var $attr Mage_Eav_Model_Entity_Attribute */
+		foreach ($attrs as $attr) {
+			if ($product->hasData($attr->getName())) {
+				// if an attribute has options/labels
+				if (in_array($attr->getFrontendInput(), array('select', 'multiselect'))) {
+					$value = $product->getAttributeText($attr->getName());
+					if (is_array($value)) $value = implode(',', $value);
+				}
+				// else is a static value
+				else {
+					$value = $product->getDataUsingMethod($attr->getName());
+				}
+				// fake an item option
+				$option = array(
+					'value'	=> $value,
+					'label'	=> $attr->getFrontendLabel()
+				);
+				$this->_writeOrderItemOption($option, $xml, $storeId);
+			}
+		}
+	}
+
+	protected function _writeOrderItemOption($option, XMLWriter $xml)
+	{
+		$xml->startElement('Option');
+		Mage::helper('auctaneapi')->fieldsetToXml('sales_order_item_option', $option, $xml);
+		$xml->endElement(); // Option
+	}
+
+	/**
+	 * Safe way to lookup parent order items.
+	 *
+	 * @param Mage_Sales_Model_Order_Item $item
+	 * @return Mage_Sales_Model_Order_Item
+	 */
+	protected function _getOrderItemParent(Mage_Sales_Model_Order_Item $item)
+	{
+		if ($item->getParentItem()) {
+			return $item->getParentItem();
+		}
+
+		$parentItem = Mage::getModel('sales/order_item')
+			->load($item->getParentItemId());
+		$item->setParentItem($parentItem);
+		return $parentItem;
+	}
+
+	/**
+	 * @param Mage_Sales_Model_Order_Item $item
+	 * @param mixed $storeId
+	 * @return Mage_Catalog_Model_Product
+	 */
+	protected function _getOrderItemParentProduct(Mage_Sales_Model_Order_Item $item, $storeId = null)
+	{
+		if ($item->getParentItemId()) {
+			// cannot use getParentItem() because we stripped parents from the order
+			$parentItem = $this->_getOrderItemParent($item);
+			// initialise with store so that images are correct
+			return Mage::getModel('catalog/product')
+				->setStoreId($storeId)
+				->load($parentItem->getProductId());
+		}
+		return null;
+	}
 
 }

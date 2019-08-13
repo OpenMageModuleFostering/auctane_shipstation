@@ -13,15 +13,20 @@
  * to license@auctane.com so we can send you a copy immediately.
  *
  * @category   Shipping
- * @package    Auctane_Api
+ * @package    Auctane_ShipStation
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
-class Auctane_Api_AuctaneController extends Mage_Api_Controller_Action
-{
-    public function indexAction()
-    {
-        $this->_getServer()->init($this, 'auctane')
-            ->run();
-    }
+class Auctane_ShipStation_Model_Observer {
+
+	public function appendDashboardSalesHtml(Varien_Event_Observer $observer)
+	{
+		$block = $observer->getBlock();
+		$transport = $observer->getTransport();
+		/* @var $block Mage_Adminhtml_Block_Dashboard_Sales */
+		if ($block->getType() == 'adminhtml/dashboard_sales') {
+			$transport->setHtml($transport->getHtml() . $block->getLayout()->getBlock('pendingorders')->toHtml());
+		}
+	}
+
 }

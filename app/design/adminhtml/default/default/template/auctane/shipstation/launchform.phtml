@@ -1,0 +1,59 @@
+<?php 
+/**
+ * ShipStation
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@auctane.com so we can send you a copy immediately.
+ *
+ * @category   Shipping
+ * @package    Auctane_ShipStation
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+?>
+<?php /* @var $this Mage_Adminhtml_Block_Template */ ?>
+<?php $helper = Mage::helper('auctaneshipstation') ?>
+<?php if ($helper->setupRequired()):
+
+$button = $this->getLayout()->createBlock('adminhtml/widget_button', 'launch_button', array(
+	'label'		=>	$this->getLabel(),
+	'onclick'	=>	"setLocation('{$this->getUrl('*/shipstation/setup')}');"
+));
+echo $button->toHtml();
+
+else:
+
+$user = $helper->getUser();
+$timestamp = new DateTime();
+$timestamp->setTimezone(new DateTimeZone('UTC'));
+
+// Use own container otherwise private form key is revealed.
+$form = new Varien_Data_Form();
+$form->addField('shipstationusername', 'hidden', array(
+	'name'	=>	'Username',
+	'value'	=>	$user->getRequestUsername()
+));
+$form->addField('shipstationauthtoken', 'hidden', array(
+	'name'	=>	'AuthToken',
+	'value'	=>	$user->getAuthToken()
+));
+$form->addField('shipstationtimestamp', 'hidden', array(
+	'name'	=>	'Timestamp',
+	'value'	=>	$timestamp->format('m/d/Y H:i:s')
+));
+$form->addField('shipstationsubmit', 'submit', array(
+	'class'		=>	'form-button',
+	'value'		=>	$this->getLabel()
+));
+
+?>
+<form action="<?php echo $user->getAuthUrl() ?>" method="post" target="_blank">
+<?php echo $form->toHtml() ?>
+</form>
+<?php endif; ?>

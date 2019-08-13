@@ -13,15 +13,24 @@
  * to license@auctane.com so we can send you a copy immediately.
  *
  * @category   Shipping
- * @package    Auctane_Api
+ * @package    Auctane_ShipStation
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
-class Auctane_Api_AuctaneController extends Mage_Api_Controller_Action
+class Auctane_ShipStation_Block_Adminhtml_Pending extends Mage_Adminhtml_Block_Template
 {
-    public function indexAction()
-    {
-        $this->_getServer()->init($this, 'auctane')
-            ->run();
-    }
+
+	protected function _construct()
+	{
+		parent::_construct();
+
+		$this->setOrders(
+			Mage::getResourceModel('sales/order_collection')
+				->addAttributeToSelect("*")
+				->addAttributeToFilter('status', array('processing','pending'))
+		);
+
+		return $this;
+	}
+
 }
