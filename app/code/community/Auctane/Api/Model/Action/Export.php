@@ -83,13 +83,7 @@ class Auctane_Api_Model_Action_Export
         $xml->startElement('Orders');
         $xml->writeAttribute('pages', $orders->getLastPageNumber());
         foreach ($orders as $order) {
-            // check if shipping info is available with order.
-            $orderShipping = $order->getShippingDescription();
-            if ($orderShipping) {
                 $this->_writeOrder($order, $xml, $storeId);
-            } else {
-                continue;
-            }
         }
         $xml->startElement('Query');
         $xml->writeCdata($orders->getSelectSql());
@@ -163,11 +157,6 @@ class Auctane_Api_Model_Action_Export
         
         /* @var $item Mage_Sales_Model_Order_Item */
         foreach ($order->getItemsCollection($helper->getIncludedProductTypes()) as $item) {
-            // skip the virtual products.
-            $isVirtual = $item->getIsVirtual();
-            if ($isVirtual) {
-              continue;
-            }
             $isBundle = 0;
             //Check for the parent bundle item type
             $parentItem = $this->_getOrderItemParent($item);
@@ -178,6 +167,9 @@ class Auctane_Api_Model_Action_Export
                     $isBundle = 1;
                 }
             }
+	        if ($item->getHasChildren() && $item->getParentItemId()) {
+	    	    continue;
+            }	
             $this->_orderItem($item, $xml, $storeId, $isBundle);
         }
         
