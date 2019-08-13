@@ -126,17 +126,18 @@ class Auctane_Api_Model_Action_Shipnotify {
 		/* @var $items Mage_Sales_Model_Mysql4_Order_Item_Collection */
 		$items = $order->getItemsCollection();
 		$qtys = array();
+		$childs = array();
 		/* @var $item Mage_Sales_Model_Order_Item */
 		foreach ($items as $item) {
-            /* collect all items qtys if shipall flag is true */
-            if($shipAll) {                
-                if ($item->getParentItemId()) {
-                    $qtys[$item->getParentItemId()] = $item->getQtyOrdered();
-                } else {
-                    $qtys[$item->getId()] = $item->getQtyOrdered();
-                }
-                continue;
-            }           
+            		/* collect all items qtys if shipall flag is true */
+            		if($shipAll) {                
+                		if ($item->getParentItemId()) {
+                    			$qtys[$item->getParentItemId()] = $item->getQtyOrdered();
+                		} else {
+                    			$qtys[$item->getId()] = $item->getQtyOrdered();
+                		}
+               		 continue;
+            		}         
 			// search for item by SKU
 			@list($xmlItem) = $xmlItems->xpath(sprintf('//Item/SKU[text()="%s"]/..',
 				addslashes($item->getSku())));
@@ -145,6 +146,16 @@ class Auctane_Api_Model_Action_Shipnotify {
 				$qtys[$item->getId()] = (float) $xmlItem->Quantity;
 			}
 		}
+				//Add child products into the shipments
+				$intImportChildProducts = Mage::getStoreConfig('auctaneapi/general/import_child_products');
+				if($intImportChildProducts == 2) {
+					$orderItems = $order->getAllItems();
+					foreach ($orderItems as $objItem) {
+						if($objItem->getParentItemId()) {
+							$qtys[$objItem->getItemId()] = $qtys[$objItem->getParentItemId()];
+						}
+					}
+				}	
 		return $qtys;
 	}
 

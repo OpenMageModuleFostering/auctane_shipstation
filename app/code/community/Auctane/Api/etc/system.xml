@@ -70,6 +70,15 @@
                             <sort_order>10</sort_order>
                             <show_in_store>1</show_in_store>
                         </customattributes>
+                        <import_child_products translate="label">
+                            <label>Import Child Products</label>
+                            <frontend_type>select</frontend_type>
+                            <sort_order>15</sort_order>
+                            <source_model>auctaneapi/system_source_config_import</source_model>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_child_products>
                     </fields>
                 </general>
             </groups>

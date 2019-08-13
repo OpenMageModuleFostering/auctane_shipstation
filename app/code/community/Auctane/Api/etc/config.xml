@@ -241,6 +241,7 @@
 				<invoiceComment>Issued by Auctane ShipStation.</invoiceComment>
                 <export_price>1</export_price>
                 <import_discounts>1</import_discounts>
+                <import_child_products>1</import_child_products>
 			</config>
 		</auctaneapi>
 	</default>

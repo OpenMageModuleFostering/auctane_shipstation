@@ -44,7 +44,6 @@ class Auctane_Api_Model_Action_Export {
 		$response->clearHeaders()
 			->setHeader('Content-Type','text/xml; charset='.$apiConfigCharset)
 			->setBody($xml->outputMemory(true));
-
 	}
 
 	protected function _getExportPageSize()
@@ -103,8 +102,7 @@ class Auctane_Api_Model_Action_Export {
         
         if($helper->getExportPriceType($order->getStoreId()) == Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {            
             $helper->fieldsetToXml('base_sales_order', $order, $xml);
-        }
-        else {
+        } else {
            $helper->fieldsetToXml('sales_order', $order, $xml);
         }
         
@@ -125,15 +123,16 @@ class Auctane_Api_Model_Action_Export {
 
 		$xml->endElement(); // Customer
         
-        /** add purchase order nubmer */        
-        Mage::helper('auctaneapi')->writePoNumber($order, $xml);
+        	/** add purchase order nubmer */        
+        	Mage::helper('auctaneapi')->writePoNumber($order, $xml);
        
 		$xml->startElement('Items');
 		/* @var $item Mage_Sales_Model_Order_Item */
 		$bundleItems = array();
 		$orderItems = array();
-
 		$intCnt = 0;
+		//Check for the bundle child product to import
+			$intImportChildProducts = Mage::getStoreConfig('auctaneapi/general/import_child_products');
 		foreach ($order->getItemsCollection($helper->getIncludedProductTypes()) as $item) {
 			/* @var $product Mage_Catalog_Model_Product */
 			$product = Mage::getModel('catalog/product')
@@ -142,18 +141,20 @@ class Auctane_Api_Model_Action_Export {
 			$productId = $product->getId();
 
 			$boolIsBundleProduct = false;
-
 			if($product->getTypeId() === 'bundle'){
 				//Get all bundle items of this bundle product
 				$bundleItems = array_flip(Mage::helper('auctaneapi')->getBundleItems($productId));
 				$boolIsBundleProduct = true;
 			}
-
-			if(isset($bundleItems[$productId])){
+			if($intImportChildProducts == 2 && $item->getParentItemId()){
+				continue;
+			}
+			   
+			if(isset($bundleItems[$productId])) {
 				//Remove item from bundle product items
 			    unset($bundleItems[ $productId ]);
-			    $orderItems[$intCnt]['item'] = $item;
-			    $orderItems[$intCnt]['bundle'] = 1;
+			    		$orderItems[$intCnt]['item'] = $item;
+			    		$orderItems[$intCnt]['bundle'] = 1;
 			}else{
 				//These are items for next processing
 				$orderItems[$intCnt]['item'] = $item;
@@ -164,8 +165,8 @@ class Auctane_Api_Model_Action_Export {
 			    }
 			}
 			$intCnt++;
-		}   
-
+		}
+		
 		foreach ($orderItems as $key=>$item) {
 			$this->_writeOrderItem($item['item'], $xml, $storeId, $item['bundle']);
 		}
@@ -242,8 +243,7 @@ class Auctane_Api_Model_Action_Export {
         if(Mage::helper('auctaneapi')->getExportPriceType($item->getOrder()->getStoreId()) == 
                 Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {
             $helper->fieldsetToXml('base_sales_order_item', $item, $xml, $isBundle);
-        }
-        else {
+        } else {
            $helper->fieldsetToXml('sales_order_item', $item, $xml, $isBundle);
         }
        

@@ -33,6 +33,7 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
 	public function fieldsetToXml($fieldset, $source, XMLWriter $xml, $isBundle = 0)
 	{
 		$fields = (array) Mage::getConfig()->getFieldset($fieldset);
+		$intImportChildProducts = Mage::getStoreConfig('auctaneapi/general/import_child_products');
 		foreach ($fields as $field => $dest) {
 			if (!$dest->auctaneapi) continue;
 
@@ -41,7 +42,7 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
 				? $source->getDataUsingMethod($field)
 				: @$source[$field];
 
-			if($isBundle == 1 && $name == 'UnitPrice') {
+			if($isBundle == 1 && $name == 'UnitPrice' && $intImportChildProducts == 1) {
 				//continue;
 				$value = 0;
 			}
