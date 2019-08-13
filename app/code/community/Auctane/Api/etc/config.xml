@@ -19,7 +19,7 @@
 <config>
     <modules>
         <Auctane_Api>
-            <version>1.3.42</version>
+            <version>1.3.45</version>
         </Auctane_Api>
     </modules>
     <global>
@@ -31,7 +31,15 @@
                         <method>salesruleProcess</method>
                     </auctaneapi_salesrule_process>                       
                 </observers>                     
-            </salesrule_validator_process>            
+            </salesrule_validator_process>
+            <sales_quote_save_before>
+                    <observers>
+                        <auctaneapi_quote_save>
+                            <class>auctaneapi/observer</class>
+                            <method>salesQuoteSave</method>
+                        </auctaneapi_quote_save>
+                    </observers>
+            </sales_quote_save_before>         
         </events> 
         <helpers>
             <auctaneapi>

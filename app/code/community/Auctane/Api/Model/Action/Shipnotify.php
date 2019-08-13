@@ -31,7 +31,7 @@ class Auctane_Api_Model_Action_Shipnotify
         // Raw XML is POSTed to this stream
         $xml = simplexml_load_file('php://input');
         // load some objects
-        $order = $this->_getOrder($xml->OrderNumber);
+        $order = $this->_getOrder($xml->OrderID);
         $qtys = $this->_getOrderItemQtys($xml->Items, $order);
         $shipment = $this->_getOrderShipment($order, $qtys);
 
@@ -157,10 +157,17 @@ class Auctane_Api_Model_Action_Shipnotify
                 continue;
             }
             // search for item by SKU
-            list($xmlItem) = $xmlItems->xpath(sprintf('//Item/SKU[text()="%s"]/..', addslashes($item->getSku())));
-            if ($xmlItem) {
-                // store quantity by order item ID, not by SKU
-                $qtys[$item->getId()] = (float) $xmlItem->Quantity;
+            $sku = addslashes($item->getSku());
+            $xmlItemResult = $xmlItems->xpath(
+                sprintf('//Item/SKU[text()="%s"]/..', $sku)
+            );
+            //list($xmlItem) = $xmlItems->xpath(sprintf('//Item/SKU[text()="%s"]/..', addslashes($item->getSku())));
+            if (!empty($xmlItemResult)) {
+                list($xmlItem) = $xmlItemResult;
+                if ($xmlItem) {
+                    // store quantity by order item ID, not by SKU
+                    $qtys[$item->getId()] = (float) $xmlItem->Quantity;
+                }
             }
         }
         //Add child products into the shipments

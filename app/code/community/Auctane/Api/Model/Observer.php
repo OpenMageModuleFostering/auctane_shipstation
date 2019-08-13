@@ -100,5 +100,22 @@ class Auctane_Api_Model_Observer
                 
         $quote->setAuctaneapiDiscounts(serialize($discounts));
     }
-      
+    
+    /**
+     * Update the discount from the quote.
+     * @param Varien_Event_Observer $observer
+     */    
+    public function salesQuoteSave($observer)
+    {
+        $quote = $observer->getQuote();
+        // check the rule applied to the order.
+        $strRuleId = $quote->getAppliedRuleIds();
+        if (!$strRuleId || $strRuleId == NULL) {
+            // unset if discounts are all ready set.
+           $discounts = unserialize($quote->getAuctaneapiDiscounts());
+            if ($discounts) {
+                $quote->setAuctaneapiDiscounts('');
+            }
+        }
+    }  
 }

@@ -83,7 +83,13 @@ class Auctane_Api_Model_Action_Export
         $xml->startElement('Orders');
         $xml->writeAttribute('pages', $orders->getLastPageNumber());
         foreach ($orders as $order) {
-            $this->_writeOrder($order, $xml, $storeId);
+            // check if shipping info is available with order.
+            $orderShipping = $order->getShippingDescription();
+            if ($orderShipping) {
+                $this->_writeOrder($order, $xml, $storeId);
+            } else {
+                continue;
+            }
         }
         $xml->startElement('Query');
         $xml->writeCdata($orders->getSelectSql());
@@ -157,7 +163,12 @@ class Auctane_Api_Model_Action_Export
         
         /* @var $item Mage_Sales_Model_Order_Item */
         foreach ($order->getItemsCollection($helper->getIncludedProductTypes()) as $item) {
-           $isBundle = 0;
+            // skip the virtual products.
+            $isVirtual = $item->getIsVirtual();
+            if ($isVirtual) {
+              continue;
+            }
+            $isBundle = 0;
             //Check for the parent bundle item type
             $parentItem = $this->_getOrderItemParent($item);
             if ($parentItem->getProductType() === 'bundle') {
@@ -171,14 +182,24 @@ class Auctane_Api_Model_Action_Export
         }
         
         $intImportDiscount = Mage::getStoreConfig('auctaneapi/general/import_discounts');
-        if ($intImportDiscount != 2) { // Import Discount is true
+        $fltOrderDiscount = $order->getDiscountAmount();
+        if ($intImportDiscount != 2 && $fltOrderDiscount != 0.0000) {
+        // Import Discount is true
             $discounts = array();
+            $processed = array();
             if ($order->getData('auctaneapi_discounts')) {
                 $discounts = unserialize($order->getData('auctaneapi_discounts'));
                 if (is_array($discounts)) {
                     $aggregated = array();
                     foreach ($discounts as $key => $discount) {
                         $keyData = explode('-', $key);
+                        //check the duplication of rule for each item.
+                        $itemRule = $keyData[0].'-'.$keyData[1];
+                        if(in_array($itemRule, $processed)) {
+                            continue;
+                        } else {
+                            $processed[] = $itemRule;
+                        }
                         if (isset($aggregated[$keyData[0]])) {
                             $aggregated[$keyData[0]] += $discount;
                         } else {
@@ -207,7 +228,6 @@ class Auctane_Api_Model_Action_Export
         if ($item->getParentItemId() && !$item->getParentItem()) {
             $item->setParentItem(Mage::getModel('sales/order_item')->load($item->getParentItemId()));
         }
-        
         $exclude = Mage::helper('auctaneapi')->isExcludedProductType($item->getParentItem()->getProductType());
         // only inherit if parent has been hidden
         if ($item->getParentItem() && ($item->getPrice() == 0.000) && $exclude) {
