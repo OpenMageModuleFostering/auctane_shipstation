@@ -95,6 +95,21 @@
 				<!-- Change "gift" to "gift_message_available" to show when customer had the choice, even if they did not enter a message. -->
 				<gift><auctaneapi>Gift</auctaneapi></gift>
 			</sales_order>
+                        <base_sales_order>
+                            <increment_id><auctaneapi>OrderNumber</auctaneapi></increment_id>
+				<created_at><auctaneapi>OrderDate</auctaneapi></created_at>
+				<status><auctaneapi>OrderStatus</auctaneapi></status>
+				<updated_at><auctaneapi>LastModified</auctaneapi></updated_at>
+				<shipping_description><auctaneapi>ShippingMethod</auctaneapi></shipping_description>
+				<base_grand_total><auctaneapi>OrderTotal</auctaneapi></base_grand_total>
+				<base_tax_amount><auctaneapi>TaxAmount</auctaneapi></base_tax_amount>
+				<base_shipping_amount><auctaneapi>ShippingAmount</auctaneapi></base_shipping_amount>
+				<!-- status_history_text & gift_message are provided by Auctane, it is not standard Magento -->
+				<status_history_text><auctaneapi>InternalNotes</auctaneapi></status_history_text>
+				<gift_message><auctaneapi>GiftMessage</auctaneapi></gift_message>
+				<!-- Change "gift" to "gift_message_available" to show when customer had the choice, even if they did not enter a message. -->
+				<gift><auctaneapi>Gift</auctaneapi></gift>                             
+                        </base_sales_order> 
 			<sales_order_billing_address>
 				<name><auctaneapi>Name</auctaneapi></name>
 				<company><auctaneapi>Company</auctaneapi></company>
@@ -123,6 +138,16 @@
 				<gift><auctaneapi>Gift</auctaneapi></gift>
 				<gift_message><auctaneapi>GiftMessage</auctaneapi></gift_message>
 			</sales_order_item>
+                        <base_sales_order_item>
+				<sku><auctaneapi>SKU</auctaneapi></sku>
+				<name><auctaneapi>Name</auctaneapi></name>
+				<weight><auctaneapi>Weight</auctaneapi></weight>
+				<qty_ordered><auctaneapi>Quantity</auctaneapi></qty_ordered>
+				<base_price><auctaneapi>UnitPrice</auctaneapi></base_price>
+				<!-- gift_message is provided by Auctane, it is not standard Magento -->
+				<gift><auctaneapi>Gift</auctaneapi></gift>
+				<gift_message><auctaneapi>GiftMessage</auctaneapi></gift_message>
+			</base_sales_order_item>
 			<sales_order_item_product>
 				<!-- Any product attributes listed here will be output as order item fields -->
 				<!-- Note: Product attributes may change after an order is placed -->
@@ -186,6 +211,7 @@
 				<realm>Auctane ShipStation</realm>
 				<exportPageSize>100</exportPageSize>
 				<invoiceComment>Issued by Auctane ShipStation.</invoiceComment>
+                                <export_price>1</export_price>
 			</config>
 		</auctaneapi>
 	</default>

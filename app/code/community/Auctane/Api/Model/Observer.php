@@ -34,6 +34,11 @@ class Auctane_Api_Model_Observer
                 $baseShippingAmount = $address->getBaseShippingAmount();
             }
 
+            //check for discount applied on shipping amount or not
+            if(!$rule['apply_to_shipping'])
+                $baseShippingAmount = 0;
+
+
             $baseDiscountAmount = 0;
             $rulePercent = min(100, $rule->getDiscountAmount());
             switch ($rule->getSimpleAction()) {
@@ -94,5 +99,4 @@ class Auctane_Api_Model_Observer
     {
         $observer->getOrder()->setAuctaneapiDiscounts($observer->getQuote()->getAuctaneapiDiscounts());
     }  
-    
 }

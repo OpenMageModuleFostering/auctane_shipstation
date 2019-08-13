@@ -44,6 +44,7 @@ class Auctane_Api_Model_Action_Export {
 		$response->clearHeaders()
 			->setHeader('Content-Type','text/xml; charset='.$apiConfigCharset)
 			->setBody($xml->outputMemory(true));
+
 	}
 
 	protected function _getExportPageSize()
@@ -99,8 +100,14 @@ class Auctane_Api_Model_Action_Export {
 		$helper = Mage::helper('auctaneapi');
 
 		$xml->startElement('Order');
-		$helper->fieldsetToXml('sales_order', $order, $xml);
-
+        
+        if($helper->getExportPriceType($order->getStoreId()) == Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {            
+            $helper->fieldsetToXml('base_sales_order', $order, $xml);
+        }
+        else {
+           $helper->fieldsetToXml('sales_order', $order, $xml);
+        }
+        
 		$xml->startElement('Customer');
 		$xml->startElement('CustomerCode');
 		$xml->writeCdata($order->getCustomerEmail());
@@ -123,11 +130,33 @@ class Auctane_Api_Model_Action_Export {
        
 		$xml->startElement('Items');
 		/* @var $item Mage_Sales_Model_Order_Item */
+		$bundleItems = array();
+		$orderItems = array();
+
 		foreach ($order->getItemsCollection($helper->getIncludedProductTypes()) as $item) {
+			/* @var $product Mage_Catalog_Model_Product */
+			$product = Mage::getModel('catalog/product')
+				->setStoreId($storeId)
+				->load($item->getProductId());
+			$productId = $product->getId();
+
+			if($product->getTypeId() === 'bundle'){
+				//Get all bundle items of this bundle product
+				$bundleItems = array_flip(Mage::helper('auctaneapi')->getBundleItems($productId));
+			}
+
+			if(isset($bundleItems[$productId])){
+				//Remove item from bundle product items
+			    unset($bundleItems[ $productId ]);
+			}else{
+				//These are items for next processing
+				$orderItems[] = $item;
+			}
+		}   
+
+		foreach ($orderItems as $key=>$item) {
 			$this->_writeOrderItem($item, $xml, $storeId);
 		}
-        
-        
         
         $discounts = array();        
         if($order->getData('auctaneapi_discounts')) {
@@ -145,11 +174,8 @@ class Auctane_Api_Model_Action_Export {
                }               
                Mage::helper('auctaneapi')->writeDiscountsInfo($aggregated, $xml);
             }        
-        }
-        
-        
-        
-        
+        }   
+                      
 		$xml->endElement(); // Items
 
 		$xml->endElement(); // Order
@@ -193,9 +219,18 @@ class Auctane_Api_Model_Action_Export {
 				$product->setThumbnail($parentProduct->getThumbnail());
 		}
 
+		
 		$xml->startElement('Item');
-		Mage::helper('auctaneapi')->fieldsetToXml('sales_order_item', $item, $xml);
-
+    
+        $helper = Mage::helper('auctaneapi');
+        if(Mage::helper('auctaneapi')->getExportPriceType($item->getOrder()->getStoreId()) == 
+                Auctane_Api_Model_System_Source_Config_Prices::BASE_PRICE) {
+            $helper->fieldsetToXml('base_sales_order_item', $item, $xml);
+        }
+        else {
+           $helper->fieldsetToXml('sales_order_item', $item, $xml);
+        }
+       
 		/* using emulation so that product images come from the correct store */
 		$appEmulation = Mage::getSingleton('core/app_emulation');
 		$initialEnvironmentInfo = $appEmulation->startEnvironmentEmulation( $product->getStoreId() );
@@ -224,6 +259,9 @@ class Auctane_Api_Model_Action_Export {
 		$xml->endElement(); // Options
 
 		$xml->endElement(); // Item
+	
+
+		
 	}
 
 	protected function _writeOrderProductAttribute(Mage_Catalog_Model_Product $product, XMLWriter $xml, $storeId = null)

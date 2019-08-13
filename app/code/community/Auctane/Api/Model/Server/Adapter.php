@@ -77,6 +77,12 @@ class Auctane_Api_Model_Server_Adapter
 		// Unlike RPC services there is no session
 		/* @var $user Mage_Api_Model_User */
 		$user = Mage::getModel('api/user');
+        
+        $sapi_type = php_sapi_name();            
+        if (substr($sapi_type, 0, 3) == 'cgi' && isset($_SERVER['HTTP_AUTHORIZATION'])) {            
+           list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':' ,   base64_decode(substr($_SERVER['HTTP_AUTHORIZATION'], 6)));
+        }
+            
 		$auth_user = isset($_SERVER['HTTP_SS_AUTH_USER']) ? $_SERVER['HTTP_SS_AUTH_USER'] : @$_SERVER['PHP_AUTH_USER'];
 		$auth_password = isset($_SERVER['HTTP_SS_AUTH_PW']) ? $_SERVER['HTTP_SS_AUTH_PW'] : @$_SERVER['PHP_AUTH_PW'];
 		if (!$user->authenticate($auth_user, $auth_password)) {

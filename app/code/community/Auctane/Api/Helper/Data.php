@@ -56,14 +56,14 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
      */
     public function writeDiscountsInfo(array $discounts, XMLWriter $xml)
     {
-        foreach ($discounts as $rule => $total) {
-            $xml->startElement('Item');
-
+        foreach ($discounts as $rule => $total) {         
             $salesRule = Mage::getModel('salesrule/rule')->load($rule);
 
             if (!$salesRule->getId()) {
                 continue;
             }
+
+            $xml->startElement('Item');
             
             $xml->startElement('SKU');            
                 $xml->writeCdata($salesRule->getCouponCode() ? $salesRule->getCouponCode() : 'AUTOMATIC_DISCOUNT');			 
@@ -139,6 +139,46 @@ class Auctane_Api_Helper_Data extends Mage_Core_Helper_Data
 	{
 		$modules = array_keys((array)Mage::getConfig()->getNode('modules')->children());
 		return implode(',', $modules);
+	}
+    
+    /**
+     * Get export price type
+     * 
+     * @param int $store
+     * @return int
+     */    
+    public function getExportPriceType($store)
+    {        
+        return Mage::getStoreConfig('sales/auctaneapi/export_price', $store);        
+    }
+
+    /**
+     * Get bundle items for specific bundle product
+     * 
+     * @param int $bundleProductId
+     * @return array()
+     */   
+    public function getBundleItems($bundleProductId){
+		try{
+
+			$bundledProduct = new Mage_Catalog_Model_Product();
+		    $bundledProduct->load($bundleProductId);
+		    $selectionCollection = $bundledProduct->getTypeInstance(true)->getSelectionsCollection(
+		        $bundledProduct->getTypeInstance(true)->getOptionsIds($bundledProduct), $bundledProduct
+		    );
+		    $bundleItems = array();
+		    foreach($selectionCollection as $option)
+		    {
+		    	// Assign bundle product items to global array.
+		    	$bundleItems[] = $option->product_id;
+		    }
+
+		    return $bundleItems;
+		    
+		}catch(Exception $e){
+			Mage::log($e->getMessage());
+			return array();
+		}
 	}
 
 }
